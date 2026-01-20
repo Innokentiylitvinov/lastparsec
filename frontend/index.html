@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Last Parsec</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Стартовый экран -->
+    <div id="startScreen">
+        <h1 class="game-title">LAST PARSEC</h1>
+        <div class="menu-buttons">
+            <button id="playButton">ИГРАТЬ</button>
+            <button id="leaderboardButton">ЛИДЕРБОРД</button>
+        </div>
+        <p class="hint">Управление: мышь + клик для стрельбы</p>
+    </div>
+
+    <div id="score">Очки: 0</div>
+    <div id="controlInfo"></div>
+    <div id="tiltIndicator">Наклон: 0°</div>
+    <button id="permissionButton">Разрешить гироскоп</button>
+    <div id="gameOver">
+        <div>GAME OVER</div>
+        <p id="finalScore"></p>
+        <p id="gameOverReason">Вы проиграли!</p>
+        <div class="menu-buttons">
+            <button id="restartButton">ЕЩЁ РАЗ</button>
+            <button id="menuButton">В МЕНЮ</button>
+        </div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script type="module" src="js/game.js"></script>
+</body>
+</html>
