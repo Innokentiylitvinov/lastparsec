@@ -3,13 +3,17 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.json());
 
+// Определяем путь к frontend
+const frontendPath = path.join(__dirname, '..', 'frontend');
+console.log('Frontend path:', frontendPath);
+
 // Раздаём frontend
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(frontendPath));
 
 // API
 app.get('/api/health', (req, res) => {
@@ -18,9 +22,10 @@ app.get('/api/health', (req, res) => {
 
 // Всё остальное → index.html
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
+    console.log(`📁 Serving frontend from: ${frontendPath}`);
 });
