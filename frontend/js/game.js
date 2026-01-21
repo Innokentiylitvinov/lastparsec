@@ -3,10 +3,11 @@ import { Player } from './player.js';
 import { EnemyManager } from './enemies.js';
 import { Renderer } from './renderer.js';
 import { UI } from './ui.js';
+import { API } from './api.js';
 
 // ====== СОСТОЯНИЕ ИГРЫ ======
 window.gameRunning = false;
-let gameStarted = false; // Игра хоть раз запускалась?
+let gameStarted = false;
 
 const canvas = document.getElementById('gameCanvas');
 canvas.width = window.innerWidth;
@@ -17,6 +18,7 @@ const ui = new UI();
 const renderer = new Renderer(canvas);
 const player = new Player(canvas);
 const enemyManager = new EnemyManager(canvas);
+const api = new API();  // 🆕 API клиент
 
 // Пули игрока
 const bullets = [];
@@ -46,12 +48,30 @@ function changeScore(delta) {
     return score;
 }
 
-function gameOver(reason) {
+// 🆕 Game Over с валидацией
+async function gameOver(reason) {
     window.gameRunning = false;
-    ui.showGameOver(reason, score);
+    
+    // Отправляем результат на сервер
+    const result = await api.endGame(score);
+    
+    if (result.valid) {
+        ui.showGameOver(reason, score, `Время: ${result.gameTime}с`);
+    } else {
+        ui.showGameOver(reason, score, `⚠️ Результат не засчитан`);
+        console.warn('Score rejected:', result.reason);
+    }
 }
 
-function startGame() {
+// 🆕 Start с сессией
+async function startGame() {
+    // Получаем сессию от сервера
+    const sessionId = await api.startGame();
+    if (!sessionId) {
+        alert('Ошибка подключения к серверу');
+        return;
+    }
+    
     score = 0;
     ui.updateScore(score);
     ui.hideStartScreen();
@@ -63,7 +83,6 @@ function startGame() {
     
     controls.mouseX = canvas.width / 2;
     
-    // Захватываем курсор
     canvas.requestPointerLock();
     
     window.gameRunning = true;
@@ -119,17 +138,14 @@ function gameLoop() {
         
         enemyManager.checkPlayerBullets(bullets, changeScore);
         
-        // Отрисовка игровых объектов
         renderer.drawBullets(bullets);
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
     } else if (gameStarted) {
-        // Game Over — показываем последний кадр
         renderer.drawBullets(bullets);
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
     }
-    // Если !gameStarted — показываем только звёзды (меню)
     
     requestAnimationFrame(gameLoop);
 }
@@ -139,7 +155,6 @@ ui.onPlay(startGame);
 ui.onRestart(restart);
 ui.onMenu(backToMenu);
 ui.onLeaderboard(() => {
-    // TODO: показать лидерборд
     alert('Лидерборд скоро будет!');
 });
 
@@ -153,7 +168,7 @@ window.addEventListener('resize', () => {
 async function init() {
     await controls.init();
     ui.showStartScreen();
-    gameLoop(); // Запускаем рендер звёзд
+    gameLoop();
 }
 
 init();
