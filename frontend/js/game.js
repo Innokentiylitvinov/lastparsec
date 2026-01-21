@@ -106,11 +106,23 @@ function restart() {
 function backToMenu() {
     window.gameRunning = false;
     gameStarted = false;
-    ui.showStartScreen();
     
+    // Очищаем сцену от всех объектов
+    //enemies.length = 0;  // ❌ Проблема — enemies недоступен напрямую!
+    bullets.length = 0;
+    
+    // Сбрасываем игрока в центр
     player.reset();
     enemyManager.reset();
-    bullets.length = 0;
+    
+    // Скрываем ВСЕ экраны
+    ui.hideGameOver();
+    document.getElementById('saveScoreScreen')?.classList.add('hidden');
+    document.getElementById('leaderboardScreen')?.classList.add('hidden');
+    document.getElementById('afterSaveButtons')?.classList.add('hidden');
+    
+    // Показываем меню
+    ui.showStartScreen();
 }
 
 // ====== ОБНОВЛЕНИЕ ПУЛЬ ======
@@ -183,5 +195,8 @@ async function init() {
     gameLoop();
 }
 
+// Экспортируем функции для auth.js
+window.backToMenu = backToMenu;
+window.startGame = startGame;
 
 init();

@@ -518,6 +518,13 @@ body {
 #score.visible {
     display: block;
 }
+#afterSaveButtons {
+    margin-top: 20px;
+}
+
+#menuAfterSave {
+    background: linear-gradient(135deg, #4a4a6a 0%, #2a2a4a 100%) !important;
+}
 
 /* ====== АДАПТИВ ДЛЯ МОБИЛЬНЫХ ====== */
 @media (max-width: 600px) {

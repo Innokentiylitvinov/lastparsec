@@ -130,7 +130,6 @@ const AuthUI = {
         // Сохранение результата
         document.getElementById('saveScoreButton')?.addEventListener('click', () => this.showSaveScore());
         document.getElementById('skipSaveButton')?.addEventListener('click', () => this.hideSaveScore());
-        document.getElementById('saveMenuButton')?.addEventListener('click', () => this.goToMenu());
         
         // Форма авторизации
         document.getElementById('nicknameInput')?.addEventListener('input', (e) => this.onNicknameInput(e));
@@ -140,6 +139,31 @@ const AuthUI = {
         document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.onSubmit();
         });
+        
+        // Кнопки после сохранения
+        document.getElementById('playAgainAfterSave')?.addEventListener('click', () => this.playAgain());
+        document.getElementById('menuAfterSave')?.addEventListener('click', () => this.goToMenu());
+    },
+
+
+        // ✅ Новая функция — играть снова
+    playAgain() {
+        document.getElementById('saveScoreScreen').classList.add('hidden');
+        document.getElementById('afterSaveButtons')?.classList.add('hidden');
+        this.resetSaveScreen();
+            
+        // Вызываем глобальный старт игры
+        if (typeof window.startGame === 'function') {
+            window.startGame();
+        }
+    },
+
+        // ✅ Сброс экрана сохранения для следующего раза
+    resetSaveScreen() {
+        document.getElementById('authForm')?.classList.remove('hidden');
+        document.getElementById('saveResult')?.classList.add('hidden');
+        document.getElementById('skipSaveButton')?.classList.remove('hidden');
+        document.getElementById('afterSaveButtons')?.classList.add('hidden');
     },
     
     updateUserStatus() {
@@ -204,7 +228,6 @@ const AuthUI = {
     },
     
     // ====== СОХРАНЕНИЕ РЕЗУЛЬТАТА ======
-    
     showSaveScore() {
         document.getElementById('gameOver').style.display = 'none';
         document.getElementById('saveScoreScreen').classList.remove('hidden');
@@ -236,7 +259,7 @@ const AuthUI = {
         document.getElementById('authSubmitButton').classList.add('hidden');
         document.getElementById('nicknameStatus').textContent = '';
         document.getElementById('skipSaveButton').classList.remove('hidden');
-        document.getElementById('saveMenuButton').classList.add('hidden');
+        //document.getElementById('saveMenuButton').classList.add('hidden');
     },
     
     // ✅ Новая функция: показать сообщение "не рекорд"
@@ -250,7 +273,9 @@ const AuthUI = {
             </div>
         `;
         document.getElementById('skipSaveButton').classList.add('hidden');
-        document.getElementById('saveMenuButton').classList.remove('hidden');
+        
+        // Показываем кнопки "Ещё раз" и "В меню"
+        this.showAfterSaveButtons();
     },
     
     async saveScoreDirectly() {
@@ -277,12 +302,22 @@ const AuthUI = {
                     </div>
                 `;
             }
+            
+            // ✅ Показываем кнопки после сохранения
+            this.showAfterSaveButtons();
+            
         } catch (error) {
             document.getElementById('saveResult').innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            document.getElementById('skipSaveButton').classList.remove('hidden');
         }
-        
-        document.getElementById('saveMenuButton').classList.remove('hidden');
     },
+
+    // ✅ Новая функция
+    showAfterSaveButtons() {
+        document.getElementById('afterSaveButtons')?.classList.remove('hidden');
+        document.getElementById('skipSaveButton')?.classList.add('hidden');
+    },
+
     
     hideSaveScore() {
         document.getElementById('saveScoreScreen').classList.add('hidden');
@@ -291,7 +326,14 @@ const AuthUI = {
     
     goToMenu() {
         document.getElementById('saveScoreScreen').classList.add('hidden');
-        document.getElementById('startScreen').classList.remove('hidden');
+        
+        // Вызываем глобальную функцию очистки из game.js
+        if (typeof window.backToMenu === 'function') {
+            window.backToMenu();
+        } else {
+            document.getElementById('startScreen').classList.remove('hidden');
+        }
+        
         this.updateUserStatus();
     },
     

@@ -4,6 +4,10 @@ export class Renderer {
         this.ctx = canvas.getContext('2d');
         this.stars = [];
         this.initStars();
+        
+        // Запускаем вечный цикл звёзд
+        this.lastTime = performance.now();
+        this.startBackgroundLoop();
     }
     
     initStars() {
@@ -17,6 +21,25 @@ export class Renderer {
         }
     }
     
+    // Вечный цикл — звёзды анимируются ВСЕГДА
+    startBackgroundLoop() {
+        const animate = (currentTime) => {
+            const deltaTime = (currentTime - this.lastTime) / 1000;
+            this.lastTime = currentTime;
+            
+            // Рисуем фон только когда игра НЕ запущена
+            // (когда игра запущена — gameLoop сам всё рисует)
+            if (!window.gameRunning) {
+                this.clear();
+                this.updateStars(deltaTime);
+                this.drawStars();
+            }
+            
+            requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+    }
+    
     clear() {
         this.ctx.fillStyle = '#000';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -24,7 +47,7 @@ export class Renderer {
     
     updateStars(deltaTime) {
         this.stars.forEach(star => {
-            star.y += star.speed * 30 * deltaTime; // 30 = базовый множитель
+            star.y += star.speed * 30 * deltaTime;
             if (star.y > this.canvas.height) {
                 star.y = 0;
                 star.x = Math.random() * this.canvas.width;

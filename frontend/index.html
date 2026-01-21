@@ -42,11 +42,16 @@
         
         <div id="saveResult" class="hidden"></div>
         
-        <div class="menu-buttons">
-            <button id="skipSaveButton">ПРОПУСТИТЬ</button>
-            <button id="saveMenuButton" class="hidden">В МЕНЮ</button>
+        <!-- Кнопка пропустить (до сохранения) -->
+        <button id="skipSaveButton" class="back-button">ПРОПУСТИТЬ</button>
+        
+        <!-- Кнопки после сохранения -->
+        <div id="afterSaveButtons" class="menu-buttons hidden">
+            <button id="playAgainAfterSave">ЕЩЁ РАЗ</button>
+            <button id="menuAfterSave">В МЕНЮ</button>
         </div>
     </div>
+
 
     <div id="score">Очки: 0</div>
     <div id="controlInfo"></div>
