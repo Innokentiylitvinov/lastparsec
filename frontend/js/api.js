@@ -3,6 +3,7 @@ export class API {
     constructor() {
         this.baseUrl = '';  // Тот же домен
         this.sessionId = null;
+        this.lastSessionId = null;  // 🆕 Сохраняем для AuthUI
     }
     
     // Начать игру — получить sessionId
@@ -41,7 +42,10 @@ export class API {
             });
             
             const data = await response.json();
-            this.sessionId = null;  // Сессия использована
+            
+            // 🆕 Сохраняем sessionId для сохранения результата
+            this.lastSessionId = this.sessionId;
+            this.sessionId = null;
             
             console.log('🏁 Game result:', data);
             return data;

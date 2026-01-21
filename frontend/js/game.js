@@ -56,6 +56,10 @@ async function gameOver(reason) {
     const result = await api.endGame(score);
     
     if (result.valid) {
+        // 🆕 Передаём lastSessionId в AuthUI
+        if (typeof AuthUI !== 'undefined') {
+            AuthUI.setGameResult(api.lastSessionId, score);
+        }
         ui.showGameOver(reason, score, `Время: ${result.gameTime}с`);
     } else {
         ui.showGameOver(reason, score, `⚠️ Результат не засчитан`);
