@@ -64,7 +64,7 @@ function generateToken() {
 const gameSessions = new Map();
 
 const VALIDATION = {
-    MAX_SCORE_PER_SECOND: 150,
+    MAX_SCORE_PER_SECOND: 20,
     MIN_GAME_TIME: 3,
     SESSION_TIMEOUT: 60 * 60 * 1000
 };

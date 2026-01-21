@@ -91,7 +91,9 @@ async function startGame() {
     
     controls.mouseX = canvas.width / 2;
     
-    canvas.requestPointerLock();
+    if (!controls.isMobile) {
+        canvas.requestPointerLock();
+    }
     
     window.gameRunning = true;
     gameStarted = true;
