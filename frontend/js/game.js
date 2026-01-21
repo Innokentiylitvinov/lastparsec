@@ -158,9 +158,7 @@ function gameLoop() {
 ui.onPlay(startGame);
 ui.onRestart(restart);
 ui.onMenu(backToMenu);
-ui.onLeaderboard(() => {
-    alert('Лидерборд скоро будет!');
-});
+
 
 // ====== ОБРАБОТЧИКИ ======
 window.addEventListener('resize', () => {
