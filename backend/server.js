@@ -26,6 +26,14 @@ async function initDatabase() {
                 created_at TIMESTAMP DEFAULT NOW()
             );
             
+            CREATE TABLE IF NOT EXISTS sessions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                token VARCHAR(64) UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW(),
+                expires_at TIMESTAMP DEFAULT NOW() + INTERVAL '30 days'
+            );
+            
             CREATE TABLE IF NOT EXISTS scores (
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER REFERENCES users(id),
@@ -35,12 +43,14 @@ async function initDatabase() {
             );
             
             CREATE INDEX IF NOT EXISTS idx_scores_score ON scores(score DESC);
+            CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
         `);
         console.log('✅ Database tables ready');
     } catch (error) {
         console.error('❌ Database init error:', error);
     }
 }
+
 
 // ====== ХЕШИРОВАНИЕ ПАРОЛЯ ======
 function hashPassword(password) {
@@ -51,8 +61,6 @@ function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-// Хранилище токенов (в памяти, для простоты)
-const authTokens = new Map(); // token -> userId
 
 // ====== АНТИЧИТ ======
 const gameSessions = new Map();
@@ -84,12 +92,20 @@ async function getUserFromToken(req) {
         return null;
     }
     const token = authHeader.slice(7);
-    const userId = authTokens.get(token);
-    if (!userId) return null;
     
+    // Ищем токен в БД
+    const sessionResult = await pool.query(
+        'SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()',
+        [token]
+    );
+    
+    if (sessionResult.rows.length === 0) return null;
+    
+    const userId = sessionResult.rows[0].user_id;
     const result = await pool.query('SELECT id, nickname FROM users WHERE id = $1', [userId]);
     return result.rows[0] || null;
 }
+
 
 // ====== API: HEALTH ======
 app.get('/api/health', (req, res) => {
@@ -172,7 +188,12 @@ app.post('/api/auth/login', async (req, res) => {
         
         const user = result.rows[0];
         const token = generateToken();
-        authTokens.set(token, user.id);
+        
+        // Сохраняем токен в БД
+        await pool.query(
+            'INSERT INTO sessions (user_id, token) VALUES ($1, $2)',
+            [user.id, token]
+        );
         
         console.log(`🔑 User logged in: ${user.nickname}`);
         res.json({ token, nickname: user.nickname });
@@ -181,6 +202,7 @@ app.post('/api/auth/login', async (req, res) => {
         res.status(500).json({ error: 'Database error' });
     }
 });
+
 
 // Кто я?
 app.get('/api/auth/me', async (req, res) => {
