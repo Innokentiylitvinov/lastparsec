@@ -301,19 +301,23 @@ app.post('/api/scores', async (req, res) => {
 
 app.get('/api/leaderboard', async (req, res) => {
     try {
+        const limit = parseInt(req.query.limit) || 256;
+        const offset = parseInt(req.query.offset) || 0;
+        
         const result = await pool.query(`
             SELECT u.nickname, s.score, s.game_time, s.created_at
             FROM scores s
             JOIN users u ON s.user_id = u.id
             ORDER BY s.score DESC
-            LIMIT 10
-        `);
+            LIMIT $1 OFFSET $2
+        `, [limit, offset]);
         res.json(result.rows);
     } catch (error) {
         console.error('Leaderboard error:', error);
         res.status(500).json({ error: 'Database error' });
     }
 });
+
 
 // ====== FALLBACK ======
 app.get('*', (req, res) => {

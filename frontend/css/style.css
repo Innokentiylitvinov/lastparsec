@@ -141,6 +141,34 @@ body {
     letter-spacing: 8px;
 }
 
+/* ====== СТАТУС ПОЛЬЗОВАТЕЛЯ ====== */
+#userStatus {
+    margin-bottom: 30px;
+    font-size: 18px;
+    color: #fff;
+}
+
+.logged-in {
+    color: #4ade80;
+}
+
+.small-button {
+    padding: 5px 15px;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #888;
+    border: 1px solid #444;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: all 0.2s;
+}
+
+.small-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
 .menu-buttons {
     display: flex;
     flex-direction: column;
@@ -185,6 +213,270 @@ body {
     font-size: 16px;
 }
 
+/* ====== HIDDEN ====== */
+.hidden {
+    display: none !important;
+}
+
+/* ====== ЭКРАН ЛИДЕРБОРДА ====== */
+#leaderboardScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    z-index: 100;
+    background: radial-gradient(ellipse at center, #1a1a2e 0%, #000 100%);
+    overflow-y: auto;
+}
+
+.screen-title {
+    font-size: 36px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px #667eea;
+    margin-bottom: 30px;
+    letter-spacing: 4px;
+}
+
+#leaderboardList {
+    width: 100%;
+    max-width: 500px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.leaderboard-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.leaderboard-row:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-row .rank {
+    width: 50px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.leaderboard-row .nickname {
+    flex: 1;
+    font-size: 18px;
+}
+
+.leaderboard-row .score {
+    font-size: 18px;
+    font-weight: bold;
+    color: #667eea;
+}
+
+/* Топ-3 */
+.leaderboard-row.gold {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0.05) 100%);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.leaderboard-row.gold .nickname,
+.leaderboard-row.gold .score {
+    color: #ffd700;
+}
+
+.leaderboard-row.silver {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.2) 0%, rgba(192, 192, 192, 0.05) 100%);
+    border: 1px solid rgba(192, 192, 192, 0.3);
+}
+
+.leaderboard-row.silver .nickname,
+.leaderboard-row.silver .score {
+    color: #c0c0c0;
+}
+
+.leaderboard-row.bronze {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.2) 0%, rgba(205, 127, 50, 0.05) 100%);
+    border: 1px solid rgba(205, 127, 50, 0.3);
+}
+
+.leaderboard-row.bronze .nickname,
+.leaderboard-row.bronze .score {
+    color: #cd7f32;
+}
+
+/* Топ-10 */
+.leaderboard-row.top10 .nickname {
+    color: #fff;
+}
+
+/* Остальные */
+.leaderboard-row.regular {
+    opacity: 0.7;
+}
+
+.leaderboard-row.regular .nickname {
+    color: #888;
+}
+
+.back-button {
+    margin-top: 30px;
+    padding: 15px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #4a4a6a 0%, #2a2a4a 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74, 74, 106, 0.6);
+}
+
+/* ====== ЭКРАН СОХРАНЕНИЯ РЕЗУЛЬТАТА ====== */
+#saveScoreScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    z-index: 100;
+    background: radial-gradient(ellipse at center, #1a1a2e 0%, #000 100%);
+}
+
+#saveScoreInfo {
+    font-size: 24px;
+    color: #667eea;
+    margin-bottom: 30px;
+}
+
+/* ====== ФОРМА АВТОРИЗАЦИИ ====== */
+#authForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    max-width: 300px;
+}
+
+#authForm input {
+    width: 100%;
+    padding: 15px 20px;
+    font-size: 18px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #444;
+    border-radius: 10px;
+    color: #fff;
+    outline: none;
+    transition: all 0.3s;
+}
+
+#authForm input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+}
+
+#authForm input::placeholder {
+    color: #666;
+}
+
+#nicknameStatus {
+    font-size: 14px;
+    min-height: 20px;
+    text-align: center;
+}
+
+.status-success {
+    color: #4ade80;
+}
+
+.status-info {
+    color: #60a5fa;
+}
+
+.status-error {
+    color: #f87171;
+}
+
+#passwordHint {
+    font-size: 12px;
+    color: #666;
+    min-height: 16px;
+}
+
+#authSubmitButton {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#authSubmitButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+#authSubmitButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ====== РЕЗУЛЬТАТ СОХРАНЕНИЯ ====== */
+#saveResult {
+    text-align: center;
+    padding: 20px;
+}
+
+#saveResult .success {
+    color: #4ade80;
+    font-size: 20px;
+    line-height: 1.5;
+}
+
+#saveResult .error {
+    color: #f87171;
+    font-size: 18px;
+}
+
+.loading {
+    color: #888;
+    font-size: 18px;
+}
+
+.empty {
+    color: #666;
+    font-size: 18px;
+    text-align: center;
+    padding: 40px;
+}
+
+.error {
+    color: #f87171;
+}
+
 /* ====== GAME OVER ДОРАБОТКИ ====== */
 #finalScore {
     font-size: 36px;
@@ -194,12 +486,28 @@ body {
 
 #gameOver .menu-buttons {
     flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 15px;
     margin-top: 20px;
 }
 
+#gameOver .menu-buttons button {
+    min-width: auto;
+    padding: 15px 25px;
+    font-size: 16px;
+}
+
 #menuButton {
     background: linear-gradient(135deg, #4a4a6a 0%, #2a2a4a 100%) !important;
+}
+
+#saveScoreButton {
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%) !important;
+}
+
+#skipSaveButton {
+    background: linear-gradient(135deg, #4a4a6a 0%, #2a2a4a 100%);
 }
 
 /* Скрываем счёт до начала игры */
@@ -218,6 +526,10 @@ body {
         letter-spacing: 4px;
     }
     
+    .screen-title {
+        font-size: 28px;
+    }
+    
     .menu-buttons button {
         padding: 15px 40px;
         font-size: 18px;
@@ -225,10 +537,30 @@ body {
     }
     
     #gameOver .menu-buttons {
-        flex-direction: row;
-        gap: 15px;
-        margin-top: 20px;
-        align-items: center;
+        flex-direction: column;
+        gap: 10px;
     }
-
+    
+    #gameOver .menu-buttons button {
+        width: 100%;
+        max-width: 250px;
+    }
+    
+    .leaderboard-row {
+        padding: 10px 12px;
+    }
+    
+    .leaderboard-row .rank {
+        width: 40px;
+        font-size: 16px;
+    }
+    
+    .leaderboard-row .nickname,
+    .leaderboard-row .score {
+        font-size: 16px;
+    }
+    
+    #saveScoreInfo {
+        font-size: 20px;
+    }
 }

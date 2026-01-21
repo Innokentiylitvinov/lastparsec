@@ -10,6 +10,7 @@
     <!-- Стартовый экран -->
     <div id="startScreen">
         <h1 class="game-title">LAST PARSEC</h1>
+        <div id="userStatus"></div>
         <div class="menu-buttons">
             <button id="playButton">ИГРАТЬ</button>
             <button id="leaderboardButton">ЛИДЕРБОРД</button>
@@ -17,21 +18,56 @@
         <p class="hint">Управление: мышь + клик для стрельбы</p>
     </div>
 
+    <!-- Экран лидерборда -->
+    <div id="leaderboardScreen" class="hidden">
+        <h2 class="screen-title">ЛИДЕРБОРД</h2>
+        <div id="leaderboardList"></div>
+        <button id="leaderboardBackButton" class="back-button">← НАЗАД</button>
+    </div>
+
+    <!-- Экран сохранения результата -->
+    <div id="saveScoreScreen" class="hidden">
+        <h2 class="screen-title">СОХРАНИТЬ РЕЗУЛЬТАТ</h2>
+        <p id="saveScoreInfo"></p>
+        
+        <div id="authForm">
+            <input type="text" id="nicknameInput" placeholder="Ваш никнейм" maxlength="20">
+            <div id="nicknameStatus"></div>
+            
+            <input type="password" id="passwordInput" placeholder="Пароль" class="hidden">
+            <div id="passwordHint" class="hidden"></div>
+            
+            <button id="authSubmitButton" class="hidden">СОХРАНИТЬ</button>
+        </div>
+        
+        <div id="saveResult" class="hidden"></div>
+        
+        <div class="menu-buttons">
+            <button id="skipSaveButton">ПРОПУСТИТЬ</button>
+            <button id="saveMenuButton" class="hidden">В МЕНЮ</button>
+        </div>
+    </div>
+
     <div id="score">Очки: 0</div>
     <div id="controlInfo"></div>
     <div id="tiltIndicator">Наклон: 0°</div>
     <button id="permissionButton">Разрешить гироскоп</button>
+    
+    <!-- Game Over экран -->
     <div id="gameOver">
         <div>GAME OVER</div>
         <p id="finalScore"></p>
         <p id="gameOverReason">Вы проиграли!</p>
         <div class="menu-buttons">
+            <button id="saveScoreButton">СОХРАНИТЬ РЕЗУЛЬТАТ</button>
             <button id="restartButton">ЕЩЁ РАЗ</button>
             <button id="menuButton">В МЕНЮ</button>
         </div>
     </div>
+    
     <canvas id="gameCanvas"></canvas>
 
+    <script src="js/auth.js"></script>
     <script type="module" src="js/game.js"></script>
 </body>
 </html>
