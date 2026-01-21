@@ -16,7 +16,6 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// Создание таблиц при старте
 async function initDatabase() {
     try {
         await pool.query(`
@@ -43,6 +42,18 @@ async function initDatabase() {
     }
 }
 
+// ====== ХЕШИРОВАНИЕ ПАРОЛЯ ======
+function hashPassword(password) {
+    return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+function generateToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+// Хранилище токенов (в памяти, для простоты)
+const authTokens = new Map(); // token -> userId
+
 // ====== АНТИЧИТ ======
 const gameSessions = new Map();
 
@@ -52,7 +63,6 @@ const VALIDATION = {
     SESSION_TIMEOUT: 60 * 60 * 1000
 };
 
-// Очистка старых сессий
 setInterval(() => {
     const now = Date.now();
     for (const [sessionId, session] of gameSessions) {
@@ -67,13 +77,132 @@ const frontendPath = path.join(__dirname, '..', 'frontend');
 console.log('Frontend path:', frontendPath);
 app.use(express.static(frontendPath));
 
-// ====== API ======
+// ====== MIDDLEWARE: Получить юзера по токену ======
+async function getUserFromToken(req) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+    }
+    const token = authHeader.slice(7);
+    const userId = authTokens.get(token);
+    if (!userId) return null;
+    
+    const result = await pool.query('SELECT id, nickname FROM users WHERE id = $1', [userId]);
+    return result.rows[0] || null;
+}
 
+// ====== API: HEALTH ======
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date() });
 });
 
-// Начало игры
+// ====== API: AUTH ======
+
+// Проверить, занят ли ник
+app.post('/api/auth/check-nickname', async (req, res) => {
+    const { nickname } = req.body;
+    
+    if (!nickname || nickname.length < 2 || nickname.length > 20) {
+        return res.status(400).json({ error: 'Nickname must be 2-20 characters' });
+    }
+    
+    try {
+        const result = await pool.query(
+            'SELECT id FROM users WHERE LOWER(nickname) = LOWER($1)',
+            [nickname]
+        );
+        res.json({ available: result.rows.length === 0 });
+    } catch (error) {
+        console.error('Check nickname error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Регистрация
+app.post('/api/auth/register', async (req, res) => {
+    const { nickname, password } = req.body;
+    
+    if (!nickname || nickname.length < 2 || nickname.length > 20) {
+        return res.status(400).json({ error: 'Nickname must be 2-20 characters' });
+    }
+    if (!password || password.length < 4) {
+        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    }
+    
+    try {
+        const passwordHash = hashPassword(password);
+        const result = await pool.query(
+            'INSERT INTO users (nickname, password_hash) VALUES ($1, $2) RETURNING id, nickname',
+            [nickname, passwordHash]
+        );
+        
+        const user = result.rows[0];
+        const token = generateToken();
+        authTokens.set(token, user.id);
+        
+        console.log(`👤 New user: ${nickname}`);
+        res.json({ token, nickname: user.nickname });
+    } catch (error) {
+        if (error.code === '23505') { // unique violation
+            return res.status(400).json({ error: 'Nickname already taken' });
+        }
+        console.error('Register error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Вход
+app.post('/api/auth/login', async (req, res) => {
+    const { nickname, password } = req.body;
+    
+    if (!nickname || !password) {
+        return res.status(400).json({ error: 'Nickname and password required' });
+    }
+    
+    try {
+        const passwordHash = hashPassword(password);
+        const result = await pool.query(
+            'SELECT id, nickname FROM users WHERE LOWER(nickname) = LOWER($1) AND password_hash = $2',
+            [nickname, passwordHash]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: 'Invalid nickname or password' });
+        }
+        
+        const user = result.rows[0];
+        const token = generateToken();
+        authTokens.set(token, user.id);
+        
+        console.log(`🔑 User logged in: ${user.nickname}`);
+        res.json({ token, nickname: user.nickname });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Кто я?
+app.get('/api/auth/me', async (req, res) => {
+    const user = await getUserFromToken(req);
+    if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    // Получаем лучший результат
+    const bestScore = await pool.query(
+        'SELECT MAX(score) as best FROM scores WHERE user_id = $1',
+        [user.id]
+    );
+    
+    res.json({
+        nickname: user.nickname,
+        bestScore: bestScore.rows[0]?.best || 0
+    });
+});
+
+// ====== API: GAME ======
+
 app.post('/api/game/start', (req, res) => {
     const sessionId = crypto.randomBytes(16).toString('hex');
     
@@ -86,7 +215,6 @@ app.post('/api/game/start', (req, res) => {
     res.json({ sessionId });
 });
 
-// Конец игры
 app.post('/api/game/end', (req, res) => {
     const { sessionId, score } = req.body;
     
@@ -118,14 +246,59 @@ app.post('/api/game/end', (req, res) => {
     session.gameTime = gameTime;
     
     console.log(`✅ Valid: ${score} pts in ${gameTime.toFixed(1)}s`);
-    gameSessions.delete(sessionId);
     
-    res.json({ valid: true, score, gameTime: gameTime.toFixed(1) });
+    res.json({ 
+        valid: true, 
+        score, 
+        gameTime: gameTime.toFixed(1),
+        sessionId // возвращаем для сохранения результата
+    });
 });
 
-// ====== ЛИДЕРБОРД ======
+// ====== API: SCORES ======
 
-// Получить топ-10
+// Сохранить результат
+app.post('/api/scores', async (req, res) => {
+    const { sessionId } = req.body;
+    const user = await getUserFromToken(req);
+    
+    if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const session = gameSessions.get(sessionId);
+    if (!session || !session.validated) {
+        return res.status(400).json({ error: 'Invalid or unvalidated session' });
+    }
+    
+    try {
+        await pool.query(
+            'INSERT INTO scores (user_id, score, game_time) VALUES ($1, $2, $3)',
+            [user.id, session.finalScore, session.gameTime]
+        );
+        
+        gameSessions.delete(sessionId);
+        
+        // Получаем место в рейтинге
+        const rank = await pool.query(
+            'SELECT COUNT(*) + 1 as rank FROM scores WHERE score > $1',
+            [session.finalScore]
+        );
+        
+        console.log(`💾 Score saved: ${user.nickname} - ${session.finalScore}`);
+        res.json({ 
+            saved: true, 
+            score: session.finalScore,
+            rank: parseInt(rank.rows[0].rank)
+        });
+    } catch (error) {
+        console.error('Save score error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// ====== API: LEADERBOARD ======
+
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -142,12 +315,12 @@ app.get('/api/leaderboard', async (req, res) => {
     }
 });
 
-// Всё остальное → index.html
+// ====== FALLBACK ======
 app.get('*', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// ====== СТАРТ ======
+// ====== START ======
 app.listen(PORT, async () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`📁 Serving frontend from: ${frontendPath}`);
