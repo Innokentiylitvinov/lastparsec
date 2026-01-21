@@ -15,7 +15,7 @@
             <button id="playButton">ИГРАТЬ</button>
             <button id="leaderboardButton">ЛИДЕРБОРД</button>
         </div>
-        <p class="hint">Управление: мышь + клик для стрельбы</p>
+        <p class="hint" id="controlHint">Управление: мышь + клик для стрельбы</p>
     </div>
 
     <!-- Экран лидерборда -->
@@ -69,5 +69,16 @@
 
     <script src="js/auth.js"></script>
     <script type="module" src="js/game.js"></script>
+    <script>
+        // Показываем правильную подсказку для устройства
+        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase()) ||
+                        ('ontouchstart' in window) ||
+                        (navigator.maxTouchPoints > 0);
+        
+        if (isMobile) {
+            document.getElementById('controlHint').textContent = 'Наклоняйте телефон для движения, тап — стрельба';
+        }
+    </script>
+
 </body>
 </html>

@@ -76,40 +76,43 @@ export class ControlSystem {
     }
     
     async initGyroscope() {
-        if (!window.DeviceOrientationEvent) {
-            console.warn('Гироскоп не поддерживается');
-            return false;
-        }
-        
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            return new Promise((resolve) => {
-                const permissionButton = document.getElementById('permissionButton');
-                permissionButton.style.display = 'block';
-                
-                permissionButton.addEventListener('click', async () => {
-                    try {
-                        const permission = await DeviceOrientationEvent.requestPermission();
-                        if (permission === 'granted') {
-                            this.setupGyroscope();
-                            permissionButton.style.display = 'none';
-                            this.gyroEnabled = true;
-                            resolve(true);
-                        } else {
-                            alert('Разрешение на гироскоп отклонено');
-                            resolve(false);
-                        }
-                    } catch (error) {
-                        console.error('Ошибка запроса разрешения:', error);
-                        resolve(false);
-                    }
-                });
-            });
-        } else {
-            this.setupGyroscope();
-            this.gyroEnabled = true;
-            return true;
-        }
+    if (!window.DeviceOrientationEvent) {
+        console.warn('Гироскоп не поддерживается');
+        return false;
     }
+    
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // iOS - показываем кнопку, но НЕ блокируем
+        const permissionButton = document.getElementById('permissionButton');
+        permissionButton.style.display = 'block';
+        
+        // Не ждём — пользователь нажмёт когда захочет
+        permissionButton.addEventListener('click', async () => {
+            try {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                permissionButton.style.display = 'none';
+                
+                if (permission === 'granted') {
+                    this.setupGyroscope();
+                    this.gyroEnabled = true;
+                } else {
+                    alert('Без гироскопа управление недоступно');
+                }
+            } catch (error) {
+                console.error('Ошибка запроса разрешения:', error);
+                permissionButton.style.display = 'none';
+            }
+        });
+        
+        return false; // Гироскоп пока не включён
+    } else {
+        // Android - сразу включаем
+        this.setupGyroscope();
+        this.gyroEnabled = true;
+        return true;
+    }
+}
+
     
     setupGyroscope() {
         window.addEventListener('deviceorientation', (event) => {
@@ -127,14 +130,20 @@ export class ControlSystem {
     
     initTouchControls() {
         const canvas = document.getElementById('gameCanvas');
+        
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if (this.gyroEnabled && this.shootCallback) {
+            // Стрелять можно всегда!
+            if (this.shootCallback && window.gameRunning) {
                 this.shootCallback();
             }
-        });
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
     }
-    
+
     initMouseControls() {
         const canvas = document.getElementById('gameCanvas');
         

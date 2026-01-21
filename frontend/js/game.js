@@ -173,9 +173,15 @@ window.addEventListener('resize', () => {
 
 // ====== ИНИЦИАЛИЗАЦИЯ ======
 async function init() {
-    await controls.init();
+    // Сначала показываем UI
     ui.showStartScreen();
+    
+    // Потом инициализируем управление (может показать кнопку гироскопа)
+    await controls.init();
+    
+    // Запускаем игровой цикл (звёзды будут анимироваться)
     gameLoop();
 }
+
 
 init();
