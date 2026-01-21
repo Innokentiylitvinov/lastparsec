@@ -18,7 +18,7 @@ const ui = new UI();
 const renderer = new Renderer(canvas);
 const player = new Player(canvas);
 const enemyManager = new EnemyManager(canvas);
-const api = new API();  // 🆕 API клиент
+const api = new API();
 
 // Пули игрока
 const bullets = [];
@@ -48,28 +48,32 @@ function changeScore(delta) {
     return score;
 }
 
-// 🆕 Game Over с валидацией
+// ✅ Game Over с isNewRecord
 async function gameOver(reason) {
     window.gameRunning = false;
     
-    // Отправляем результат на сервер
     const result = await api.endGame(score);
     
     if (result.valid) {
-        // 🆕 Передаём lastSessionId в AuthUI
+        // Передаём isNewRecord в AuthUI
         if (typeof AuthUI !== 'undefined') {
-            AuthUI.setGameResult(api.lastSessionId, score);
+            AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
         }
-        ui.showGameOver(reason, score, `Время: ${result.gameTime}с`);
+        
+        // Показываем разную информацию в зависимости от рекорда
+        let extra = `Время: ${result.gameTime}с`;
+        if (result.isNewRecord) {
+            extra = `🏆 Новый рекорд! (${result.gameTime}с)`;
+        }
+        
+        ui.showGameOver(reason, score, extra);
     } else {
         ui.showGameOver(reason, score, `⚠️ Результат не засчитан`);
         console.warn('Score rejected:', result.reason);
     }
 }
 
-// 🆕 Start с сессией
 async function startGame() {
-    // Получаем сессию от сервера
     const sessionId = await api.startGame();
     if (!sessionId) {
         alert('Ошибка подключения к серверу');
@@ -158,7 +162,6 @@ function gameLoop() {
 ui.onPlay(startGame);
 ui.onRestart(restart);
 ui.onMenu(backToMenu);
-
 
 // ====== ОБРАБОТЧИКИ ======
 window.addEventListener('resize', () => {

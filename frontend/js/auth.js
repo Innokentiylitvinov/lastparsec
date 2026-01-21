@@ -114,6 +114,7 @@ const Auth = {
 const AuthUI = {
     currentSessionId: null,
     currentScore: 0,
+    currentIsNewRecord: true,  // ✅ Добавлено
     isNewUser: null,
     
     init() {
@@ -210,13 +211,22 @@ const AuthUI = {
         
         document.getElementById('saveScoreInfo').textContent = `Ваш результат: ${this.currentScore.toLocaleString()} очков`;
         
-        // Если уже залогинен — сразу сохраняем
+        // ✅ Если залогинен — проверяем, рекорд ли это
         if (Auth.isLoggedIn()) {
-            this.saveScoreDirectly();
+            if (this.currentIsNewRecord) {
+                // Новый рекорд — сохраняем
+                this.saveScoreDirectly();
+            } else {
+                // Не рекорд — показываем сообщение
+                this.showNotRecordMessage();
+            }
             return;
         }
         
-        // Иначе показываем форму
+        // ✅ Если НЕ залогинен, но это не рекорд (гость) — всё равно показываем форму
+        // Для гостей isNewRecord всегда true (у них нет сохранённых результатов)
+        
+        // Показываем форму авторизации
         document.getElementById('authForm').classList.remove('hidden');
         document.getElementById('saveResult').classList.add('hidden');
         document.getElementById('nicknameInput').value = '';
@@ -229,6 +239,20 @@ const AuthUI = {
         document.getElementById('saveMenuButton').classList.add('hidden');
     },
     
+    // ✅ Новая функция: показать сообщение "не рекорд"
+    showNotRecordMessage() {
+        document.getElementById('authForm').classList.add('hidden');
+        document.getElementById('saveResult').classList.remove('hidden');
+        document.getElementById('saveResult').innerHTML = `
+            <div class="info">
+                📊 Это не ваш лучший результат<br>
+                <span style="color: #888; font-size: 14px;">Ваш рекорд выше — результат не сохранён</span>
+            </div>
+        `;
+        document.getElementById('skipSaveButton').classList.add('hidden');
+        document.getElementById('saveMenuButton').classList.remove('hidden');
+    },
+    
     async saveScoreDirectly() {
         document.getElementById('authForm').classList.add('hidden');
         document.getElementById('saveResult').classList.remove('hidden');
@@ -237,12 +261,22 @@ const AuthUI = {
         
         try {
             const result = await Auth.saveScore(this.currentSessionId);
-            document.getElementById('saveResult').innerHTML = `
-                <div class="success">
-                    ✅ Результат сохранён!<br>
-                    Ваше место: #${result.rank}
-                </div>
-            `;
+            
+            if (result.isNewRecord) {
+                document.getElementById('saveResult').innerHTML = `
+                    <div class="success">
+                        🏆 Новый рекорд сохранён!<br>
+                        Ваше место: #${result.rank}
+                    </div>
+                `;
+            } else {
+                document.getElementById('saveResult').innerHTML = `
+                    <div class="info">
+                        📊 Результат не сохранён<br>
+                        <span style="color: #888; font-size: 14px;">Ваш рекорд выше</span>
+                    </div>
+                `;
+            }
         } catch (error) {
             document.getElementById('saveResult').innerHTML = `<div class="error">❌ ${error.message}</div>`;
         }
@@ -348,10 +382,11 @@ const AuthUI = {
         }
     },
     
-    // Вызывается из game.js после game over
-    setGameResult(sessionId, score) {
+    // ✅ Обновлено: принимает isNewRecord
+    setGameResult(sessionId, score, isNewRecord = true) {
         this.currentSessionId = sessionId;
         this.currentScore = score;
+        this.currentIsNewRecord = isNewRecord;
     }
 };
 

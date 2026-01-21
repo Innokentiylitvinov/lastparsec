@@ -51,7 +51,6 @@ async function initDatabase() {
     }
 }
 
-
 // ====== ХЕШИРОВАНИЕ ПАРОЛЯ ======
 function hashPassword(password) {
     return crypto.createHash('sha256').update(password).digest('hex');
@@ -60,7 +59,6 @@ function hashPassword(password) {
 function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
-
 
 // ====== АНТИЧИТ ======
 const gameSessions = new Map();
@@ -93,19 +91,23 @@ async function getUserFromToken(req) {
     }
     const token = authHeader.slice(7);
     
-    // Ищем токен в БД
-    const sessionResult = await pool.query(
-        'SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()',
-        [token]
-    );
-    
-    if (sessionResult.rows.length === 0) return null;
-    
-    const userId = sessionResult.rows[0].user_id;
-    const result = await pool.query('SELECT id, nickname FROM users WHERE id = $1', [userId]);
-    return result.rows[0] || null;
+    try {
+        // Ищем токен в БД
+        const sessionResult = await pool.query(
+            'SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()',
+            [token]
+        );
+        
+        if (sessionResult.rows.length === 0) return null;
+        
+        const userId = sessionResult.rows[0].user_id;
+        const result = await pool.query('SELECT id, nickname FROM users WHERE id = $1', [userId]);
+        return result.rows[0] || null;
+    } catch (error) {
+        console.error('Token validation error:', error);
+        return null;
+    }
 }
-
 
 // ====== API: HEALTH ======
 app.get('/api/health', (req, res) => {
@@ -154,12 +156,17 @@ app.post('/api/auth/register', async (req, res) => {
         
         const user = result.rows[0];
         const token = generateToken();
-        authTokens.set(token, user.id);
+        
+        // ✅ Сохраняем токен в БД (не в память!)
+        await pool.query(
+            'INSERT INTO sessions (user_id, token) VALUES ($1, $2)',
+            [user.id, token]
+        );
         
         console.log(`👤 New user: ${nickname}`);
         res.json({ token, nickname: user.nickname });
     } catch (error) {
-        if (error.code === '23505') { // unique violation
+        if (error.code === '23505') {
             return res.status(400).json({ error: 'Nickname already taken' });
         }
         console.error('Register error:', error);
@@ -203,7 +210,6 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-
 // Кто я?
 app.get('/api/auth/me', async (req, res) => {
     const user = await getUserFromToken(req);
@@ -211,16 +217,21 @@ app.get('/api/auth/me', async (req, res) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
     
-    // Получаем лучший результат
-    const bestScore = await pool.query(
-        'SELECT MAX(score) as best FROM scores WHERE user_id = $1',
-        [user.id]
-    );
-    
-    res.json({
-        nickname: user.nickname,
-        bestScore: bestScore.rows[0]?.best || 0
-    });
+    try {
+        // Получаем лучший результат
+        const bestScore = await pool.query(
+            'SELECT MAX(score) as best FROM scores WHERE user_id = $1',
+            [user.id]
+        );
+        
+        res.json({
+            nickname: user.nickname,
+            bestScore: bestScore.rows[0]?.best || 0
+        });
+    } catch (error) {
+        console.error('Get me error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
 });
 
 // ====== API: GAME ======
@@ -237,7 +248,8 @@ app.post('/api/game/start', (req, res) => {
     res.json({ sessionId });
 });
 
-app.post('/api/game/end', (req, res) => {
+// ✅ Добавлен isNewRecord
+app.post('/api/game/end', async (req, res) => {
     const { sessionId, score } = req.body;
     
     const session = gameSessions.get(sessionId);
@@ -267,19 +279,37 @@ app.post('/api/game/end', (req, res) => {
     session.finalScore = score;
     session.gameTime = gameTime;
     
-    console.log(`✅ Valid: ${score} pts in ${gameTime.toFixed(1)}s`);
+    // ✅ Проверяем, новый ли это рекорд
+    let isNewRecord = true;
+    const user = await getUserFromToken(req);
+    
+    if (user) {
+        try {
+            const best = await pool.query(
+                'SELECT MAX(score) as best FROM scores WHERE user_id = $1',
+                [user.id]
+            );
+            const bestScore = best.rows[0]?.best || 0;
+            isNewRecord = score > bestScore;
+        } catch (error) {
+            console.error('Check best score error:', error);
+        }
+    }
+    
+    console.log(`✅ Valid: ${score} pts in ${gameTime.toFixed(1)}s (record: ${isNewRecord})`);
     
     res.json({ 
         valid: true, 
         score, 
         gameTime: gameTime.toFixed(1),
-        sessionId // возвращаем для сохранения результата
+        sessionId,
+        isNewRecord  // ✅ Клиент узнает, показывать ли кнопку сохранения
     });
 });
 
 // ====== API: SCORES ======
 
-// Сохранить результат
+// ✅ Сохраняет только если новый рекорд
 app.post('/api/scores', async (req, res) => {
     const { sessionId } = req.body;
     const user = await getUserFromToken(req);
@@ -294,10 +324,30 @@ app.post('/api/scores', async (req, res) => {
     }
     
     try {
-        await pool.query(
-            'INSERT INTO scores (user_id, score, game_time) VALUES ($1, $2, $3)',
-            [user.id, session.finalScore, session.gameTime]
+        // Проверяем текущий лучший результат
+        const current = await pool.query(
+            'SELECT id, score FROM scores WHERE user_id = $1 ORDER BY score DESC LIMIT 1',
+            [user.id]
         );
+        
+        let isNewRecord = false;
+        
+        if (current.rows.length === 0) {
+            // Первый результат — вставляем
+            await pool.query(
+                'INSERT INTO scores (user_id, score, game_time) VALUES ($1, $2, $3)',
+                [user.id, session.finalScore, session.gameTime]
+            );
+            isNewRecord = true;
+        } else if (session.finalScore > current.rows[0].score) {
+            // Новый рекорд — обновляем
+            await pool.query(
+                'UPDATE scores SET score = $1, game_time = $2, created_at = NOW() WHERE id = $3',
+                [session.finalScore, session.gameTime, current.rows[0].id]
+            );
+            isNewRecord = true;
+        }
+        // Если результат хуже — ничего не делаем
         
         gameSessions.delete(sessionId);
         
@@ -307,11 +357,17 @@ app.post('/api/scores', async (req, res) => {
             [session.finalScore]
         );
         
-        console.log(`💾 Score saved: ${user.nickname} - ${session.finalScore}`);
+        if (isNewRecord) {
+            console.log(`💾 New record: ${user.nickname} - ${session.finalScore}`);
+        } else {
+            console.log(`📊 Score not saved (not a record): ${user.nickname} - ${session.finalScore}`);
+        }
+        
         res.json({ 
-            saved: true, 
+            saved: isNewRecord, 
             score: session.finalScore,
-            rank: parseInt(rank.rows[0].rank)
+            rank: parseInt(rank.rows[0].rank),
+            isNewRecord
         });
     } catch (error) {
         console.error('Save score error:', error);
@@ -321,25 +377,26 @@ app.post('/api/scores', async (req, res) => {
 
 // ====== API: LEADERBOARD ======
 
+// ✅ Только лучший результат каждого игрока
 app.get('/api/leaderboard', async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 256;
-        const offset = parseInt(req.query.offset) || 0;
+        const limit = parseInt(req.query.limit) || 100;
         
         const result = await pool.query(`
-            SELECT u.nickname, s.score, s.game_time, s.created_at
+            SELECT u.nickname, MAX(s.score) as score
             FROM scores s
             JOIN users u ON s.user_id = u.id
-            ORDER BY s.score DESC
-            LIMIT $1 OFFSET $2
-        `, [limit, offset]);
+            GROUP BY u.id, u.nickname
+            ORDER BY score DESC
+            LIMIT $1
+        `, [limit]);
+        
         res.json(result.rows);
     } catch (error) {
         console.error('Leaderboard error:', error);
         res.status(500).json({ error: 'Database error' });
     }
 });
-
 
 // ====== FALLBACK ======
 app.get('*', (req, res) => {
