@@ -22,8 +22,8 @@ export class EnemyManager {
     
     // Интервал стрельбы в секундах (уменьшается с очками)
     getShootInterval(score) {
-        // От 2 сек до 0.4 сек минимум
-        return Math.max(0.4, 2 - score * 0.02);
+        // От 2 сек до 0.5 сек минимум
+        return Math.max(0.5, 2 - score * 0.01);
     }
 
     update(score, playerBounds, onScoreChange, onGameOver, deltaTime) {
@@ -111,14 +111,14 @@ export class EnemyManager {
                 this.enemies.splice(i, 1);
                 const newScore = onScoreChange(-1);
                 if (newScore < 0) {
-                    onGameOver('Слишком много пропущенных врагов!');
+                    onGameOver('Too many enemies escaped!');
                     return;
                 }
                 continue;
             }
             
             if (this.checkCollision(playerBounds, enemy)) {
-                onGameOver('Вы столкнулись с врагом!');
+                onGameOver('You crashed into an enemy!');
                 return;
             }
         }
@@ -134,14 +134,14 @@ export class EnemyManager {
                 this.asteroids.splice(i, 1);
                 const newScore = onScoreChange(-1);
                 if (newScore < 0) {
-                    onGameOver('Слишком много пропущенных объектов!');
+                    onGameOver('Too many objects escaped!');
                     return;
                 }
                 continue;
             }
             
             if (this.checkCollision(playerBounds, asteroid)) {
-                onGameOver('Вы столкнулись с астероидом!');
+                onGameOver('You crashed into an asteroid!');
                 return;
             }
         }
@@ -159,7 +159,7 @@ export class EnemyManager {
             }
             
             if (this.checkBulletCollision(bullet, playerBounds)) {
-                onGameOver('Вас подстрелил вражеский корабль!');
+                onGameOver('You were shot by an enemy!');
                 return;
             }
         }

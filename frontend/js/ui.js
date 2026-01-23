@@ -34,7 +34,7 @@ export class UI {
     // 🆕 Обновлённый метод с третьим параметром
     showGameOver(reason, score, statusMessage = null) {
         this.gameOverReason.textContent = reason;
-        this.finalScore.textContent = `Счёт: ${score}`;
+        this.finalScore.textContent = `score: ${score}`;
         
         // Показываем статус валидации
         if (statusMessage) {

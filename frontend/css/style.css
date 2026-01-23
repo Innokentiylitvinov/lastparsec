@@ -254,7 +254,7 @@ body {
 }
 
 #leaderboardList {
-    width: 100%;
+    width: 90%;
     max-width: 500px;
     flex: 1;
     overflow-y: auto;
@@ -540,12 +540,13 @@ body {
 /* ====== АДАПТИВ ДЛЯ МОБИЛЬНЫХ ====== */
 @media (max-width: 600px) {
     .game-title {
-        font-size: 36px;
-        letter-spacing: 4px;
+        font-size: 45px;
+        letter-spacing: -4px;
     }
     
     .screen-title {
         font-size: 28px;
+        letter-spacing: 0;
     }
     
     .menu-buttons button {

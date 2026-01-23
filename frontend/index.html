@@ -12,45 +12,45 @@
         <h1 class="game-title">LAST PARSEC</h1>
         <div id="userNickname"></div>
         <div class="menu-buttons">
-            <button id="playButton">ИГРАТЬ</button>
-            <button id="leaderboardButton">ЛИДЕРБОРД</button>
+            <button id="playButton">play</button>
+            <button id="leaderboardButton">leaderboard</button>
         </div>
-        <button id="logoutButton" class="logout-button hidden">Выйти</button>
-        <p class="hint" id="controlHint">Управление: мышь + клик для стрельбы</p>
+        <button id="logoutButton" class="logout-button hidden">logout</button>
+        <p class="hint" id="controlHint">controls: mouse + click to shoot</p>
     </div>
 
 
     <!-- Экран лидерборда -->
     <div id="leaderboardScreen" class="hidden">
-        <h2 class="screen-title">ЛИДЕРБОРД</h2>
+        <h2 class="screen-title">leaderboard</h2>
         <div id="leaderboardList"></div>
-        <button id="leaderboardBackButton" class="back-button">← НАЗАД</button>
+        <button id="leaderboardBackButton" class="back-button">← back</button>
     </div>
 
     <!-- Экран сохранения результата -->
     <div id="saveScoreScreen" class="hidden">
-        <h2 class="screen-title">СОХРАНИТЬ РЕЗУЛЬТАТ</h2>
+        <h2 class="screen-title">save result</h2>
         <p id="saveScoreInfo"></p>
         
         <div id="authForm">
-            <input type="text" id="nicknameInput" placeholder="Ваш никнейм" maxlength="20">
+            <input type="text" id="nicknameInput" placeholder="nickname" maxlength="20">
             <div id="nicknameStatus"></div>
             
-            <input type="password" id="passwordInput" placeholder="Пароль" class="hidden">
+            <input type="password" id="passwordInput" placeholder="password" class="hidden">
             <div id="passwordHint" class="hidden"></div>
             
-            <button id="authSubmitButton" class="hidden">СОХРАНИТЬ</button>
+            <button id="authSubmitButton" class="hidden">save</button>
         </div>
         
         <div id="saveResult" class="hidden"></div>
         
         <!-- Кнопка пропустить (до сохранения) -->
-        <button id="skipSaveButton" class="back-button">ПРОПУСТИТЬ</button>
+        <button id="skipSaveButton" class="back-button">skip</button>
         
         <!-- Кнопки после сохранения -->
         <div id="afterSaveButtons" class="menu-buttons hidden">
-            <button id="playAgainAfterSave">ЕЩЁ РАЗ</button>
-            <button id="menuAfterSave">В МЕНЮ</button>
+            <button id="playAgainAfterSave">restart</button>
+            <button id="menuAfterSave">back to menu</button>
         </div>
     </div>
 
@@ -62,11 +62,11 @@
     <div id="gameOver">
         <div>GAME OVER</div>
         <p id="finalScore"></p>
-        <p id="gameOverReason">Вы проиграли!</p>
+        <p id="gameOverReason">game over!</p>
         <div class="menu-buttons">
-            <button id="saveScoreButton">СОХРАНИТЬ РЕЗУЛЬТАТ</button>
-            <button id="restartButton">ЕЩЁ РАЗ</button>
-            <button id="menuButton">В МЕНЮ</button>
+            <button id="saveScoreButton">save result</button>
+            <button id="restartButton">restart</button>
+            <button id="menuButton">back to menu</button>
         </div>
     </div>
     
@@ -81,7 +81,7 @@
                         (navigator.maxTouchPoints > 0);
         
         if (isMobile) {
-            document.getElementById('controlHint').textContent = 'Наклон — движения, тап — стрельба';
+            document.getElementById('controlHint').textContent = 'tilt to control, Tap to shoot';
         }
     </script>
 

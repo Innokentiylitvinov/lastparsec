@@ -58,14 +58,14 @@ async function gameOver(reason) {
             AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
         }
         
-        let extra = `Время: ${result.gameTime}с`;
+        let extra = `time: ${result.gameTime}с`;
         if (result.isNewRecord) {
-            extra = `🏆 Новый рекорд! (${result.gameTime}с)`;
+            extra = `🏆 record Set! (${result.gameTime}с)`;
         }
         
         ui.showGameOver(reason, score, extra);
     } else {
-        ui.showGameOver(reason, score, `⚠️ Результат не засчитан`);
+        ui.showGameOver(reason, score, `⚠️ score rejected`);
         console.warn('Score rejected:', result.reason);
     }
 }
@@ -83,7 +83,7 @@ async function startGame() {
     
     const sessionId = await api.startGame();
     if (!sessionId) {
-        alert('Ошибка подключения к серверу');
+        alert('server connection error');
         ui.showStartScreen();
         return;
     }

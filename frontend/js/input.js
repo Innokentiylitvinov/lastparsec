@@ -77,7 +77,7 @@ export class ControlSystem {
     // ✅ Проверяем нужно ли разрешение (не показываем кнопку)
     async checkGyroPermission() {
         if (!window.DeviceOrientationEvent) {
-            console.warn('Гироскоп не поддерживается');
+            console.warn('Gyroscope is not supported');
             return;
         }
         
@@ -111,11 +111,11 @@ export class ControlSystem {
                         this.gyroEnabled = true;
                         resolve(true);
                     } else {
-                        alert('Без гироскопа управление недоступно');
+                        alert('Control is not available without a gyroscope');
                         resolve(false);
                     }
                 } catch (error) {
-                    console.error('Ошибка запроса разрешения:', error);
+                    console.error('Permission request error:', error);
                     permissionButton.style.display = 'none';
                     resolve(false);
                 }

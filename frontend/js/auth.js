@@ -198,13 +198,13 @@ const AuthUI = {
         document.getElementById('leaderboardScreen').classList.remove('hidden');
         
         const listEl = document.getElementById('leaderboardList');
-        listEl.innerHTML = '<div class="loading">Загрузка...</div>';
+        listEl.innerHTML = '<div class="loading">Зloading…</div>';
         
         try {
             const scores = await Auth.getLeaderboard();
             
             if (scores.length === 0) {
-                listEl.innerHTML = '<div class="empty">Пока нет результатов. Будь первым!</div>';
+                listEl.innerHTML = '<div class="empty">No results yet. Be the first!</div>';
                 return;
             }
             
@@ -228,7 +228,7 @@ const AuthUI = {
                 `;
             }).join('');
         } catch (error) {
-            listEl.innerHTML = '<div class="error">Ошибка загрузки</div>';
+            listEl.innerHTML = '<div class="error">loading error</div>';
         }
     },
     
@@ -242,7 +242,7 @@ const AuthUI = {
         document.getElementById('gameOver').style.display = 'none';
         document.getElementById('saveScoreScreen').classList.remove('hidden');
         
-        document.getElementById('saveScoreInfo').textContent = `Ваш результат: ${this.currentScore.toLocaleString()} очков`;
+        document.getElementById('saveScoreInfo').textContent = `Your score: ${this.currentScore.toLocaleString()} points`;
         
         // ✅ Если залогинен — проверяем, рекорд ли это
         if (Auth.isLoggedIn()) {
@@ -278,8 +278,8 @@ const AuthUI = {
         document.getElementById('saveResult').classList.remove('hidden');
         document.getElementById('saveResult').innerHTML = `
             <div class="info">
-                📊 Это не ваш лучший результат<br>
-                <span style="color: #888; font-size: 14px;">Ваш рекорд выше — результат не сохранён</span>
+                This is not your best score<br>
+                <span style="color: #888; font-size: 14px;">Your record is higher — score not saved</span>
             </div>
         `;
         document.getElementById('skipSaveButton').classList.add('hidden');
@@ -291,7 +291,7 @@ const AuthUI = {
     async saveScoreDirectly() {
         document.getElementById('authForm').classList.add('hidden');
         document.getElementById('saveResult').classList.remove('hidden');
-        document.getElementById('saveResult').innerHTML = '<div class="loading">Сохранение...</div>';
+        document.getElementById('saveResult').innerHTML = '<div class="loading">saving...</div>';
         document.getElementById('skipSaveButton').classList.add('hidden');
         
         try {
@@ -300,15 +300,15 @@ const AuthUI = {
             if (result.isNewRecord) {
                 document.getElementById('saveResult').innerHTML = `
                     <div class="success">
-                        🏆 Новый рекорд сохранён!<br>
-                        Ваше место: #${result.rank}
+                        🏆 Your record saved!<br>
+                        your rank: #${result.rank}
                     </div>
                 `;
             } else {
                 document.getElementById('saveResult').innerHTML = `
                     <div class="info">
-                        📊 Результат не сохранён<br>
-                        <span style="color: #888; font-size: 14px;">Ваш рекорд выше</span>
+                        Score not saved!<br>
+                        <span style="color: #888; font-size: 14px;">Your record is higher</span>
                     </div>
                 `;
             }
@@ -372,25 +372,25 @@ const AuthUI = {
             
             if (available) {
                 this.isNewUser = true;
-                statusEl.textContent = '✅ Ник свободен! Придумайте пароль';
+                statusEl.textContent = 'nickname available! Create a password';
                 statusEl.className = 'status-success';
-                passwordHint.textContent = 'Минимум 4 символа';
-                passwordInput.placeholder = 'Придумайте пароль';
+                passwordHint.textContent = 'min. 4 chars';
+                passwordInput.placeholder = 'Create a password';
             } else {
                 this.isNewUser = false;
-                statusEl.textContent = '👤 Этот ник занят. Ваш? Введите пароль';
+                statusEl.textContent = 'nickname taken. Yours? Enter password';
                 statusEl.className = 'status-info';
                 passwordHint.textContent = '';
-                passwordInput.placeholder = 'Ваш пароль';
+                passwordInput.placeholder = 'Your password';
             }
             
             passwordInput.classList.remove('hidden');
             passwordHint.classList.remove('hidden');
             submitButton.classList.remove('hidden');
-            submitButton.textContent = available ? 'ЗАРЕГИСТРИРОВАТЬСЯ' : 'ВОЙТИ';
+            submitButton.textContent = available ? 'sing up' : 'login';
             
         } catch (error) {
-            statusEl.textContent = '❌ Ошибка проверки';
+            statusEl.textContent = '❌ verification error';
             statusEl.className = 'status-error';
         }
     },
@@ -402,19 +402,19 @@ const AuthUI = {
         const statusEl = document.getElementById('nicknameStatus');
         
         if (!nickname || !password) {
-            statusEl.textContent = '❌ Заполните все поля';
+            statusEl.textContent = '❌ fill in all fields';
             statusEl.className = 'status-error';
             return;
         }
         
         if (this.isNewUser && password.length < 4) {
-            statusEl.textContent = '❌ Пароль минимум 4 символа';
+            statusEl.textContent = '❌ Password min. 4 chars';
             statusEl.className = 'status-error';
             return;
         }
         
         submitButton.disabled = true;
-        submitButton.textContent = 'Подождите...';
+        submitButton.textContent = 'wait...';
         
         try {
             if (this.isNewUser) {
@@ -430,7 +430,7 @@ const AuthUI = {
             statusEl.textContent = `❌ ${error.message}`;
             statusEl.className = 'status-error';
             submitButton.disabled = false;
-            submitButton.textContent = this.isNewUser ? 'ЗАРЕГИСТРИРОВАТЬСЯ' : 'ВОЙТИ';
+            submitButton.textContent = this.isNewUser ? 'sing up' : 'login';
         }
     },
     
