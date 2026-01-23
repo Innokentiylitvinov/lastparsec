@@ -56,8 +56,6 @@
 
 
     <div id="score">Очки: 0</div>
-    <div id="controlInfo"></div>
-    <div id="tiltIndicator">Наклон: 0°</div>
     <button id="permissionButton">Разрешить гироскоп</button>
     
     <!-- Game Over экран -->
@@ -83,7 +81,7 @@
                         (navigator.maxTouchPoints > 0);
         
         if (isMobile) {
-            document.getElementById('controlHint').textContent = 'Наклоняйте телефон для движения, тап — стрельба';
+            document.getElementById('controlHint').textContent = 'Наклон — движения, тап — стрельба';
         }
     </script>
 

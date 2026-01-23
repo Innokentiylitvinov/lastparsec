@@ -74,6 +74,14 @@ async function gameOver(reason) {
 }
 
 async function startGame() {
+        // ✅ Для iOS — запрашиваем разрешение на гироскоп
+    if (controls.isMobile && controls.gyroPermissionNeeded && !controls.gyroEnabled) {
+        const granted = await controls.requestGyroPermission();
+        if (!granted) {
+            return;  // Не запускаем игру без гироскопа
+        }
+    }
+    
     const sessionId = await api.startGame();
     if (!sessionId) {
         alert('Ошибка подключения к серверу');

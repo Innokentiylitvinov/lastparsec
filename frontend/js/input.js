@@ -49,6 +49,7 @@ export class ControlSystem {
         this.deviceInfo = DeviceDetector.getDeviceInfo();
         this.isMobile = this.deviceInfo.type === 'mobile';
         this.gyroEnabled = false;
+        this.gyroPermissionNeeded = false;  // ✅ Флаг: нужно ли разрешение
         this.currentTilt = 0;
         this.sensitivity = DeviceDetector.getSensitivityMultiplier(this.deviceInfo);
         this.shootCallback = shootCallback;
@@ -66,53 +67,61 @@ export class ControlSystem {
     
     async init() {
         if (this.isMobile) {
-            await this.initGyroscope();
+            await this.checkGyroPermission();  // ✅ Только проверяем, не показываем кнопку
             this.initTouchControls();
-            this.showControlInfo('Наклоняйте устройство и тапайте для стрельбы');
         } else {
             this.initMouseControls();
-            this.showControlInfo('Мышь: движение, Клик: стрельба');
         }
     }
     
-    async initGyroscope() {
-    if (!window.DeviceOrientationEvent) {
-        console.warn('Гироскоп не поддерживается');
-        return false;
+    // ✅ Проверяем нужно ли разрешение (не показываем кнопку)
+    async checkGyroPermission() {
+        if (!window.DeviceOrientationEvent) {
+            console.warn('Гироскоп не поддерживается');
+            return;
+        }
+        
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // iOS — нужно разрешение, запомним это
+            this.gyroPermissionNeeded = true;
+        } else {
+            // Android — сразу включаем
+            this.setupGyroscope();
+            this.gyroEnabled = true;
+        }
     }
     
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-        // iOS - показываем кнопку, но НЕ блокируем
-        const permissionButton = document.getElementById('permissionButton');
-        permissionButton.style.display = 'block';
+    // ✅ Вызывается из game.js при нажатии "Играть"
+    async requestGyroPermission() {
+        if (!this.gyroPermissionNeeded || this.gyroEnabled) {
+            return true;  // Разрешение не нужно или уже есть
+        }
         
-        // Не ждём — пользователь нажмёт когда захочет
-        permissionButton.addEventListener('click', async () => {
-            try {
-                const permission = await DeviceOrientationEvent.requestPermission();
-                permissionButton.style.display = 'none';
-                
-                if (permission === 'granted') {
-                    this.setupGyroscope();
-                    this.gyroEnabled = true;
-                } else {
-                    alert('Без гироскопа управление недоступно');
+        return new Promise((resolve) => {
+            const permissionButton = document.getElementById('permissionButton');
+            permissionButton.style.display = 'block';
+            
+            permissionButton.onclick = async () => {
+                try {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    permissionButton.style.display = 'none';
+                    
+                    if (permission === 'granted') {
+                        this.setupGyroscope();
+                        this.gyroEnabled = true;
+                        resolve(true);
+                    } else {
+                        alert('Без гироскопа управление недоступно');
+                        resolve(false);
+                    }
+                } catch (error) {
+                    console.error('Ошибка запроса разрешения:', error);
+                    permissionButton.style.display = 'none';
+                    resolve(false);
                 }
-            } catch (error) {
-                console.error('Ошибка запроса разрешения:', error);
-                permissionButton.style.display = 'none';
-            }
+            };
         });
-        
-        return false; // Гироскоп пока не включён
-    } else {
-        // Android - сразу включаем
-        this.setupGyroscope();
-        this.gyroEnabled = true;
-        return true;
     }
-}
-
     
     setupGyroscope() {
         window.addEventListener('deviceorientation', (event) => {
@@ -121,10 +130,6 @@ export class ControlSystem {
                 tilt = -tilt;
             }
             this.currentTilt = tilt * this.sensitivity;
-            
-            const indicator = document.getElementById('tiltIndicator');
-            indicator.style.display = 'block';
-            indicator.textContent = `Наклон: ${this.currentTilt.toFixed(1)}°`;
         });
     }
     
@@ -133,7 +138,6 @@ export class ControlSystem {
         
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            // Стрелять можно всегда!
             if (this.shootCallback && window.gameRunning) {
                 this.shootCallback();
             }
@@ -147,7 +151,6 @@ export class ControlSystem {
     initMouseControls() {
         const canvas = document.getElementById('gameCanvas');
         
-        // Захват курсора по клику
         canvas.addEventListener('click', () => {
             if (window.gameRunning) {
                 if (!document.pointerLockElement) {
@@ -159,32 +162,24 @@ export class ControlSystem {
             }
         });
         
-        // Движение мыши
         document.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === canvas) {
-                // Относительное движение при захвате
                 if (this.mouseX === null) {
                     this.mouseX = window.innerWidth / 2;
                 }
                 this.mouseX += e.movementX;
-                // Ограничиваем границами (но не сбрасываем в центр!)
                 this.mouseX = Math.max(20, Math.min(window.innerWidth - 20, this.mouseX));
             } else {
                 this.mouseX = e.clientX;
             }
         });
         
-        // Автоматически освобождаем курсор при Game Over
         document.addEventListener('pointerlockchange', () => {
             if (!document.pointerLockElement) {
                 canvas.style.cursor = 'default';
             }
         });
-        
-        this.showControlInfo('Клик: стрельба, ESC: пауза');
     }
-
-
     
     getPlayerSpeed(canvasWidth, deltaTime = 1/60) {
         if (!this.isMobile || !this.gyroEnabled) {
@@ -198,13 +193,5 @@ export class ControlSystem {
     
     getMouseX() {
         return this.mouseX;
-    }
-    
-    showControlInfo(text) {
-        const info = document.getElementById('controlInfo');
-        info.textContent = text;
-        setTimeout(() => {
-            info.style.opacity = '0';
-        }, 5000);
     }
 }
