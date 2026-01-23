@@ -39,7 +39,7 @@ const controls = new ControlSystem(shoot);
 
 // ====== ИГРОВЫЕ ПЕРЕМЕННЫЕ ======
 let score = 0;
-let lastFrameTime = performance.now();
+let lastFrameTime = 0;
 
 // ====== ФУНКЦИИ ИГРЫ ======
 function changeScore(delta) {
@@ -48,19 +48,16 @@ function changeScore(delta) {
     return score;
 }
 
-// ✅ Game Over с isNewRecord
 async function gameOver(reason) {
     window.gameRunning = false;
     
     const result = await api.endGame(score);
     
     if (result.valid) {
-        // Передаём isNewRecord в AuthUI
         if (typeof AuthUI !== 'undefined') {
             AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
         }
         
-        // Показываем разную информацию в зависимости от рекорда
         let extra = `Время: ${result.gameTime}с`;
         if (result.isNewRecord) {
             extra = `🏆 Новый рекорд! (${result.gameTime}с)`;
@@ -80,7 +77,6 @@ async function startGame() {
         const granted = await controls.requestGyroPermission();
         if (!granted) {
             ui.showStartScreen();
-            renderer.startMenuLoop();  // ✅ Возобновляем звёзды в меню
             return;
         }
     }
@@ -89,7 +85,6 @@ async function startGame() {
     if (!sessionId) {
         alert('Ошибка подключения к серверу');
         ui.showStartScreen();
-        renderer.startMenuLoop();  // ✅ Возобновляем звёзды в меню
         return;
     }
     
@@ -109,12 +104,7 @@ async function startGame() {
     
     window.gameRunning = true;
     gameStarted = true;
-    lastFrameTime = performance.now();
-    
-    // ✅ Запускаем игровой цикл
-    requestAnimationFrame(gameLoop);
 }
-
 
 function restart() {
     startGame();
@@ -134,7 +124,6 @@ function backToMenu() {
     document.getElementById('afterSaveButtons')?.classList.add('hidden');
     
     ui.showStartScreen();
-    renderer.startMenuLoop();  // ✅ Возобновляем звёзды в меню
 }
 
 // ====== ОБНОВЛЕНИЕ ПУЛЬ ======
@@ -148,18 +137,25 @@ function updateBullets(deltaTime) {
     }
 }
 
-// ====== ИГРОВОЙ ЦИКЛ ======
+// ====== ОДИН ВЕЧНЫЙ ИГРОВОЙ ЦИКЛ ======
 function gameLoop(currentTime) {
+    // Первый кадр
+    if (lastFrameTime === 0) {
+        lastFrameTime = currentTime;
+    }
+    
     const deltaTime = (currentTime - lastFrameTime) / 1000;
     lastFrameTime = currentTime;
     
-    // Ограничиваем deltaTime (защита от лагов)
+    // Защита от больших скачков
     const dt = Math.min(deltaTime, 0.1);
     
+    // Всегда рисуем фон и звёзды
     renderer.clear();
     renderer.updateStars(dt);
     renderer.drawStars();
     
+    // Игровая логика только когда игра запущена
     if (window.gameRunning) {
         player.update(controls, dt);
         updateBullets(dt);
@@ -178,6 +174,7 @@ function gameLoop(currentTime) {
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
     } else if (gameStarted) {
+        // Game Over — показываем последний кадр
         renderer.drawBullets(bullets);
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
@@ -185,7 +182,6 @@ function gameLoop(currentTime) {
     
     requestAnimationFrame(gameLoop);
 }
-
 
 // ====== ОБРАБОТЧИКИ UI ======
 ui.onPlay(startGame);
@@ -203,13 +199,10 @@ async function init() {
     ui.showStartScreen();
     await controls.init();
     
-    // Запускаем цикл меню (звёзды)
-    renderer.startMenuLoop();
-    
-    // Игровой цикл запустится при старте игры
+    // Запускаем единственный цикл
+    requestAnimationFrame(gameLoop);
 }
 
-// Экспортируем функции для auth.js
 window.backToMenu = backToMenu;
 window.startGame = startGame;
 

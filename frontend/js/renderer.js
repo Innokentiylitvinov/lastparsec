@@ -4,53 +4,16 @@ export class Renderer {
         this.ctx = canvas.getContext('2d');
         this.stars = [];
         this.initStars();
-        
-        // Для меню — свой цикл
-        this.menuLoopId = null;
-        this.lastTime = performance.now();
     }
     
     initStars() {
-        for (let i = 0; i < 100; i++) {  // Уменьшил до 100
+        for (let i = 0; i < 120; i++) {
             this.stars.push({
                 x: Math.random() * this.canvas.width,
                 y: Math.random() * this.canvas.height,
-                radius: Math.random() * 1.5 + 0.5,
-                speed: Math.random() * 1.5 + 0.5
+                radius: Math.random() * 2,
+                speed: Math.random() * 2 + 0.5
             });
-        }
-    }
-    
-    // Запуск цикла для меню (когда игра не запущена)
-    startMenuLoop() {
-        if (this.menuLoopId) return;  // Уже запущен
-        
-        const animate = (currentTime) => {
-            if (window.gameRunning) {
-                // Игра запущена — останавливаем цикл меню
-                this.menuLoopId = null;
-                return;
-            }
-            
-            const deltaTime = (currentTime - this.lastTime) / 1000;
-            this.lastTime = currentTime;
-            
-            this.clear();
-            this.updateStars(deltaTime);
-            this.drawStars();
-            
-            this.menuLoopId = requestAnimationFrame(animate);
-        };
-        
-        this.lastTime = performance.now();
-        this.menuLoopId = requestAnimationFrame(animate);
-    }
-    
-    // Остановка цикла меню
-    stopMenuLoop() {
-        if (this.menuLoopId) {
-            cancelAnimationFrame(this.menuLoopId);
-            this.menuLoopId = null;
         }
     }
     
@@ -73,22 +36,18 @@ export class Renderer {
         }
     }
     
-    // ✅ Оптимизированная отрисовка звёзд
     drawStars() {
         const ctx = this.ctx;
         ctx.fillStyle = '#FFF';
         
-        // Один beginPath для всех звёзд
-        ctx.beginPath();
         for (let i = 0; i < this.stars.length; i++) {
             const star = this.stars[i];
-            ctx.moveTo(star.x + star.radius, star.y);
+            ctx.beginPath();
             ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            ctx.fill();
         }
-        ctx.fill();
     }
     
-    // ✅ Оптимизированная отрисовка пуль
     drawBullets(bullets) {
         if (bullets.length === 0) return;
         
