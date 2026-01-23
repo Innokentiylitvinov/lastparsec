@@ -5,39 +5,53 @@ export class Renderer {
         this.stars = [];
         this.initStars();
         
-        // Запускаем вечный цикл звёзд
+        // Для меню — свой цикл
+        this.menuLoopId = null;
         this.lastTime = performance.now();
-        this.startBackgroundLoop();
     }
     
     initStars() {
-        for (let i = 0; i < 120; i++) {
+        for (let i = 0; i < 100; i++) {  // Уменьшил до 100
             this.stars.push({
                 x: Math.random() * this.canvas.width,
                 y: Math.random() * this.canvas.height,
-                radius: Math.random() * 2,
-                speed: Math.random() * 2 + 0.5
+                radius: Math.random() * 1.5 + 0.5,
+                speed: Math.random() * 1.5 + 0.5
             });
         }
     }
     
-    // Вечный цикл — звёзды анимируются ВСЕГДА
-    startBackgroundLoop() {
+    // Запуск цикла для меню (когда игра не запущена)
+    startMenuLoop() {
+        if (this.menuLoopId) return;  // Уже запущен
+        
         const animate = (currentTime) => {
+            if (window.gameRunning) {
+                // Игра запущена — останавливаем цикл меню
+                this.menuLoopId = null;
+                return;
+            }
+            
             const deltaTime = (currentTime - this.lastTime) / 1000;
             this.lastTime = currentTime;
             
-            // Рисуем фон только когда игра НЕ запущена
-            // (когда игра запущена — gameLoop сам всё рисует)
-            if (!window.gameRunning) {
-                this.clear();
-                this.updateStars(deltaTime);
-                this.drawStars();
-            }
+            this.clear();
+            this.updateStars(deltaTime);
+            this.drawStars();
             
-            requestAnimationFrame(animate);
+            this.menuLoopId = requestAnimationFrame(animate);
         };
-        requestAnimationFrame(animate);
+        
+        this.lastTime = performance.now();
+        this.menuLoopId = requestAnimationFrame(animate);
+    }
+    
+    // Остановка цикла меню
+    stopMenuLoop() {
+        if (this.menuLoopId) {
+            cancelAnimationFrame(this.menuLoopId);
+            this.menuLoopId = null;
+        }
     }
     
     clear() {
@@ -46,29 +60,50 @@ export class Renderer {
     }
     
     updateStars(deltaTime) {
-        this.stars.forEach(star => {
+        const height = this.canvas.height;
+        const width = this.canvas.width;
+        
+        for (let i = 0; i < this.stars.length; i++) {
+            const star = this.stars[i];
             star.y += star.speed * 30 * deltaTime;
-            if (star.y > this.canvas.height) {
+            if (star.y > height) {
                 star.y = 0;
-                star.x = Math.random() * this.canvas.width;
+                star.x = Math.random() * width;
             }
-        });
+        }
     }
     
+    // ✅ Оптимизированная отрисовка звёзд
     drawStars() {
-        this.ctx.fillStyle = '#FFF';
-        this.stars.forEach(star => {
-            this.ctx.beginPath();
-            this.ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
+        const ctx = this.ctx;
+        ctx.fillStyle = '#FFF';
+        
+        // Один beginPath для всех звёзд
+        ctx.beginPath();
+        for (let i = 0; i < this.stars.length; i++) {
+            const star = this.stars[i];
+            ctx.moveTo(star.x + star.radius, star.y);
+            ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        }
+        ctx.fill();
     }
     
+    // ✅ Оптимизированная отрисовка пуль
     drawBullets(bullets) {
-        this.ctx.fillStyle = '#FFFF00';
-        bullets.forEach(bullet => {
-            this.ctx.fillRect(bullet.x - bullet.width / 2, bullet.y, bullet.width, bullet.height);
-        });
+        if (bullets.length === 0) return;
+        
+        const ctx = this.ctx;
+        ctx.fillStyle = '#FFFF00';
+        
+        for (let i = 0; i < bullets.length; i++) {
+            const bullet = bullets[i];
+            ctx.fillRect(
+                bullet.x - bullet.width / 2, 
+                bullet.y, 
+                bullet.width, 
+                bullet.height
+            );
+        }
     }
     
     getContext() {

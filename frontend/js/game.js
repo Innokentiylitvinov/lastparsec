@@ -39,7 +39,7 @@ const controls = new ControlSystem(shoot);
 
 // ====== ИГРОВЫЕ ПЕРЕМЕННЫЕ ======
 let score = 0;
-let lastFrameTime = Date.now();
+let lastFrameTime = performance.now();
 
 // ====== ФУНКЦИИ ИГРЫ ======
 function changeScore(delta) {
@@ -74,15 +74,13 @@ async function gameOver(reason) {
 }
 
 async function startGame() {
-    // ✅ Сначала скрываем меню
     ui.hideStartScreen();
     
-    // ✅ Для iOS — запрашиваем разрешение на гироскоп
     if (controls.isMobile && controls.gyroPermissionNeeded && !controls.gyroEnabled) {
         const granted = await controls.requestGyroPermission();
         if (!granted) {
-            // Если отказали — возвращаем меню
             ui.showStartScreen();
+            renderer.startMenuLoop();  // ✅ Возобновляем звёзды в меню
             return;
         }
     }
@@ -91,6 +89,7 @@ async function startGame() {
     if (!sessionId) {
         alert('Ошибка подключения к серверу');
         ui.showStartScreen();
+        renderer.startMenuLoop();  // ✅ Возобновляем звёзды в меню
         return;
     }
     
@@ -110,6 +109,10 @@ async function startGame() {
     
     window.gameRunning = true;
     gameStarted = true;
+    lastFrameTime = performance.now();
+    
+    // ✅ Запускаем игровой цикл
+    requestAnimationFrame(gameLoop);
 }
 
 
@@ -121,22 +124,17 @@ function backToMenu() {
     window.gameRunning = false;
     gameStarted = false;
     
-    // Очищаем сцену от всех объектов
-    //enemies.length = 0;  // ❌ Проблема — enemies недоступен напрямую!
     bullets.length = 0;
-    
-    // Сбрасываем игрока в центр
     player.reset();
     enemyManager.reset();
     
-    // Скрываем ВСЕ экраны
     ui.hideGameOver();
     document.getElementById('saveScoreScreen')?.classList.add('hidden');
     document.getElementById('leaderboardScreen')?.classList.add('hidden');
     document.getElementById('afterSaveButtons')?.classList.add('hidden');
     
-    // Показываем меню
     ui.showStartScreen();
+    renderer.startMenuLoop();  // ✅ Возобновляем звёзды в меню
 }
 
 // ====== ОБНОВЛЕНИЕ ПУЛЬ ======
@@ -151,25 +149,27 @@ function updateBullets(deltaTime) {
 }
 
 // ====== ИГРОВОЙ ЦИКЛ ======
-function gameLoop() {
-    const currentTime = Date.now();
+function gameLoop(currentTime) {
     const deltaTime = (currentTime - lastFrameTime) / 1000;
     lastFrameTime = currentTime;
     
+    // Ограничиваем deltaTime (защита от лагов)
+    const dt = Math.min(deltaTime, 0.1);
+    
     renderer.clear();
-    renderer.updateStars(deltaTime);
+    renderer.updateStars(dt);
     renderer.drawStars();
     
     if (window.gameRunning) {
-        player.update(controls, deltaTime);
-        updateBullets(deltaTime);
+        player.update(controls, dt);
+        updateBullets(dt);
         
         enemyManager.update(
             score,
             player.getBounds(),
             changeScore,
             gameOver,
-            deltaTime
+            dt
         );
         
         enemyManager.checkPlayerBullets(bullets, changeScore);
@@ -186,6 +186,7 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+
 // ====== ОБРАБОТЧИКИ UI ======
 ui.onPlay(startGame);
 ui.onRestart(restart);
@@ -199,14 +200,13 @@ window.addEventListener('resize', () => {
 
 // ====== ИНИЦИАЛИЗАЦИЯ ======
 async function init() {
-    // Сначала показываем UI
     ui.showStartScreen();
-    
-    // Потом инициализируем управление (может показать кнопку гироскопа)
     await controls.init();
     
-    // Запускаем игровой цикл (звёзды будут анимироваться)
-    gameLoop();
+    // Запускаем цикл меню (звёзды)
+    renderer.startMenuLoop();
+    
+    // Игровой цикл запустится при старте игры
 }
 
 // Экспортируем функции для auth.js
