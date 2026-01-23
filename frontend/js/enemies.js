@@ -20,6 +20,12 @@ export class EnemyManager {
         return 90 + (score * 3); // 90 px/s базово
     }
     
+    // Интервал стрельбы в секундах (уменьшается с очками)
+    getShootInterval(score) {
+        // От 2 сек до 0.4 сек минимум
+        return Math.max(0.4, 2 - score * 0.02);
+    }
+
     update(score, playerBounds, onScoreChange, onGameOver, deltaTime) {
         // Спавн врагов
         this.spawnTimer += deltaTime;
@@ -47,19 +53,23 @@ export class EnemyManager {
             y: -40,
             width: 35,
             height: 35,
-            speed: this.getEnemySpeed(score), // px/s
+            speed: this.getEnemySpeed(score),
             type: type,
             color: ENEMY_COLORS[type]
         };
         
         if (type === 4) {
-            enemy.shootTimer = 0;
-            enemy.shootInterval = 2; // секунды
+            // ✅ Начинаем с половины интервала — первый выстрел быстрее
+            const interval = this.getShootInterval(score);
+            enemy.shootTimer = interval * 0.5;
+            enemy.shootInterval = interval;
             enemy.canShoot = true;
         }
+
         
         this.enemies.push(enemy);
     }
+
     
     spawnAsteroid() {
         this.asteroids.push({
