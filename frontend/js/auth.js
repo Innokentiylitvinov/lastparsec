@@ -198,7 +198,7 @@ const AuthUI = {
         document.getElementById('leaderboardScreen').classList.remove('hidden');
         
         const listEl = document.getElementById('leaderboardList');
-        listEl.innerHTML = '<div class="loading">Зloading…</div>';
+        listEl.innerHTML = '<div class="loading">loading…</div>';
         
         try {
             const scores = await Auth.getLeaderboard();
