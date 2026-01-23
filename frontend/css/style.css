@@ -250,7 +250,7 @@ body {
     color: #fff;
     text-shadow: 0 0 10px #667eea;
     margin-bottom: 30px;
-    letter-spacing: 4px;
+    letter-spacing: -1px;
 }
 
 #leaderboardList {
@@ -546,7 +546,7 @@ body {
     
     .screen-title {
         font-size: 28px;
-        letter-spacing: 0;
+        letter-spacing: -1px;
     }
     
     .menu-buttons button {
