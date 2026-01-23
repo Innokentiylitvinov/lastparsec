@@ -167,19 +167,29 @@ const AuthUI = {
     },
     
     updateUserStatus() {
-        const statusEl = document.getElementById('userStatus');
-        if (!statusEl) return;
+        const nicknameEl = document.getElementById('userNickname');
+        const logoutBtn = document.getElementById('logoutButton');
+        
+        if (!nicknameEl) return;
         
         if (Auth.isLoggedIn()) {
-            statusEl.innerHTML = `<span class="logged-in">👤 ${Auth.nickname}</span> <button id="logoutButton" class="small-button">Выйти</button>`;
-            document.getElementById('logoutButton')?.addEventListener('click', () => {
-                Auth.logout();
-                this.updateUserStatus();
-            });
+            nicknameEl.innerHTML = `<span class="logged-in">${Auth.nickname}</span>`;
+            logoutBtn?.classList.remove('hidden');
+            
+            // Привязываем обработчик (только один раз)
+            if (!logoutBtn.hasAttribute('data-bound')) {
+                logoutBtn.setAttribute('data-bound', 'true');
+                logoutBtn.addEventListener('click', () => {
+                    Auth.logout();
+                    this.updateUserStatus();
+                });
+            }
         } else {
-            statusEl.innerHTML = '';
+            nicknameEl.innerHTML = '';
+            logoutBtn?.classList.add('hidden');
         }
     },
+
     
     // ====== ЛИДЕРБОРД ======
     

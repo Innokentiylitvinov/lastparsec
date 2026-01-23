@@ -573,3 +573,28 @@ body {
         font-size: 20px;
     }
 }
+
+/* ====== КНОПКА ВЫХОДА ====== */
+#userNickname {
+    margin-bottom: 20px;
+    font-size: 18px;
+    color: #fff;
+}
+
+.logout-button {
+    margin-top: 20px;
+    padding: 8px 20px;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #888;
+    border: 1px solid #444;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border-color: #666;
+}
