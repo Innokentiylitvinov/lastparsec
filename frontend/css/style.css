@@ -58,8 +58,7 @@ body {
     font-size: 24px;
 }
 
-#restartButton,
-#permissionButton {
+#restartButton {
     padding: 15px 40px;
     font-size: 24px;
     font-weight: bold;
@@ -76,14 +75,24 @@ body {
     margin-top: 0;
 }
 
+/* ====== КНОПКА ГИРОСКОПА (отдельно) ====== */
 #permissionButton {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    padding: 20px 40px;
     font-size: 20px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
     display: none;
-    z-index: 30;
+    z-index: 200;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s ease;
 }
 
 #restartButton:hover,

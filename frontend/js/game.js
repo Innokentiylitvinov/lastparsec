@@ -74,23 +74,28 @@ async function gameOver(reason) {
 }
 
 async function startGame() {
-        // ✅ Для iOS — запрашиваем разрешение на гироскоп
+    // ✅ Сначала скрываем меню
+    ui.hideStartScreen();
+    
+    // ✅ Для iOS — запрашиваем разрешение на гироскоп
     if (controls.isMobile && controls.gyroPermissionNeeded && !controls.gyroEnabled) {
         const granted = await controls.requestGyroPermission();
         if (!granted) {
-            return;  // Не запускаем игру без гироскопа
+            // Если отказали — возвращаем меню
+            ui.showStartScreen();
+            return;
         }
     }
     
     const sessionId = await api.startGame();
     if (!sessionId) {
         alert('Ошибка подключения к серверу');
+        ui.showStartScreen();
         return;
     }
     
     score = 0;
     ui.updateScore(score);
-    ui.hideStartScreen();
     ui.hideGameOver();
     
     player.reset();
@@ -106,6 +111,7 @@ async function startGame() {
     window.gameRunning = true;
     gameStarted = true;
 }
+
 
 function restart() {
     startGame();
