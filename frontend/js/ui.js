@@ -17,7 +17,7 @@ export class UI {
     }
     
     updateScore(score) {
-        this.scoreElement.textContent = 'Очки: ' + score;
+        this.scoreElement.textContent = 'score: ' + score;
     }
     
     showStartScreen() {
