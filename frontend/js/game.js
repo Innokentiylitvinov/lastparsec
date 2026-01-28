@@ -127,54 +127,40 @@ function backToMenu() {
 }
 
 // ====== ОБНОВЛЕНИЕ ПУЛЬ ======
-function updateBullets(deltaTime) {
+function updateBullets(dt) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         bullets[i].prevY = bullets[i].y;
-        bullets[i].y -= BULLET_SPEED * deltaTime;
+        bullets[i].y -= BULLET_SPEED * dt;
         if (bullets[i].y < -bullets[i].height) {
             bullets.splice(i, 1);
         }
     }
 }
 
-// ====== ОДИН ВЕЧНЫЙ ИГРОВОЙ ЦИКЛ ======
+// ====== ИГРОВОЙ ЦИКЛ (БЕЗ FPS ЛИМИТЕРА!) ======
 function gameLoop(currentTime) {
-    // Первый кадр
+    // Считаем deltaTime
     if (lastFrameTime === 0) {
         lastFrameTime = currentTime;
     }
-    
     const deltaTime = (currentTime - lastFrameTime) / 1000;
     lastFrameTime = currentTime;
+    const dt = Math.min(deltaTime, 0.1); // Защита от больших скачков
     
-    // Защита от больших скачков
-    const dt = Math.min(deltaTime, 0.1);
-    
-    // Всегда рисуем фон и звёзды
+    // Очищаем и рисуем звёзды (ВСЕГДА)
     renderer.clear();
     renderer.updateStars(dt);
     renderer.drawStars();
     
-    // Игровая логика только когда игра запущена
+    // Игровая логика (только когда игра запущена)
     if (window.gameRunning) {
+        // Обновление
         player.update(controls, dt);
         updateBullets(dt);
-        
-        enemyManager.update(
-            score,
-            player.getBounds(),
-            changeScore,
-            gameOver,
-            dt
-        );
-        
+        enemyManager.update(score, player.getBounds(), changeScore, gameOver, dt);
         enemyManager.checkPlayerBullets(bullets, changeScore);
         
-        renderer.drawBullets(bullets);
-        enemyManager.draw(renderer.getContext());
-        player.draw(renderer.getContext());
-    } else if (gameStarted) {
-        // Game Over — показываем последний кадр
+        // Отрисовка
         renderer.drawBullets(bullets);
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
@@ -198,8 +184,6 @@ window.addEventListener('resize', () => {
 async function init() {
     ui.showStartScreen();
     await controls.init();
-    
-    // Запускаем единственный цикл
     requestAnimationFrame(gameLoop);
 }
 
