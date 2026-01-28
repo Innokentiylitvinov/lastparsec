@@ -386,9 +386,3 @@ window.Auth = Auth;
 window.AuthUI = AuthUI;
 
 document.addEventListener('DOMContentLoaded', () => AuthUI.init());
-// Экспорт для ES-модулей
-export { Auth, AuthUI };
-
-// Для совместимости с inline-скриптами
-window.Auth = Auth;
-window.AuthUI = AuthUI;

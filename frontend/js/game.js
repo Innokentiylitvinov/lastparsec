@@ -4,12 +4,6 @@ import { EnemyManager } from './enemies.js';
 import { Renderer } from './renderer.js';
 import { UI } from './ui.js';
 import { API } from './api.js';
-import { Renderer } from './renderer.js';
-import { Player } from './player.js';
-import { EnemyManager } from './enemies.js';
-import { Controls } from './controls.js';
-import { API } from './api.js';
-import { AuthUI } from './auth.js';  // Добавить этот импорт
 
 
 // ====== СОСТОЯНИЕ ИГРЫ ======
