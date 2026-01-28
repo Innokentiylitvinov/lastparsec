@@ -22,7 +22,7 @@ const api = new API();
 
 // Пули игрока
 const bullets = [];
-const BULLET_SPEED = 7;  // 🔥 Вернули как в оригинале!
+const BULLET_SPEED = 420;
 
 function shoot() {
     if (!window.gameRunning) return;
@@ -39,10 +39,6 @@ const controls = new ControlSystem(shoot);
 
 // ====== ИГРОВЫЕ ПЕРЕМЕННЫЕ ======
 let score = 0;
-
-// 🔥 FPS лимитер
-const TARGET_FPS = 60;
-const FRAME_DURATION = 1000 / TARGET_FPS;
 let lastFrameTime = 0;
 
 // ====== ФУНКЦИИ ИГРЫ ======
@@ -62,9 +58,9 @@ async function gameOver(reason) {
             AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
         }
         
-        let extra = `time: ${result.gameTime}s`;
+        let extra = `time: ${result.gameTime}с`;
         if (result.isNewRecord) {
-            extra = `🏆 record set! (${result.gameTime}s)`;
+            extra = `🏆 record Set! (${result.gameTime}с)`;
         }
         
         ui.showGameOver(reason, score, extra);
@@ -130,43 +126,46 @@ function backToMenu() {
     ui.showStartScreen();
 }
 
-// ====== ОБНОВЛЕНИЕ ПУЛЬ (по кадрам!) ======
-function updateBullets() {
+// ====== ОБНОВЛЕНИЕ ПУЛЬ ======
+function updateBullets(deltaTime) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         bullets[i].prevY = bullets[i].y;
-        bullets[i].y -= BULLET_SPEED;  // 🔥 Просто -7, без deltaTime!
+        bullets[i].y -= BULLET_SPEED * deltaTime;
         if (bullets[i].y < -bullets[i].height) {
             bullets.splice(i, 1);
         }
     }
 }
 
-// ====== ИГРОВОЙ ЦИКЛ С FPS ЛИМИТЕРОМ ======
+// ====== ОДИН ВЕЧНЫЙ ИГРОВОЙ ЦИКЛ ======
 function gameLoop(currentTime) {
-    requestAnimationFrame(gameLoop);
-    
-    // 🔥 FPS лимитер — пропускаем кадры если слишком быстро
-    const elapsed = currentTime - lastFrameTime;
-    if (elapsed < FRAME_DURATION) {
-        return;
+    // Первый кадр
+    if (lastFrameTime === 0) {
+        lastFrameTime = currentTime;
     }
-    lastFrameTime = currentTime - (elapsed % FRAME_DURATION);
+    
+    const deltaTime = (currentTime - lastFrameTime) / 1000;
+    lastFrameTime = currentTime;
+    
+    // Защита от больших скачков
+    const dt = Math.min(deltaTime, 0.1);
     
     // Всегда рисуем фон и звёзды
     renderer.clear();
-    renderer.updateStarsFixed();  // 🔥 Новый метод без deltaTime
+    renderer.updateStars(dt);
     renderer.drawStars();
     
     // Игровая логика только когда игра запущена
     if (window.gameRunning) {
-        player.updateFixed(controls);  // 🔥 Новый метод без deltaTime
-        updateBullets();
+        player.update(controls, dt);
+        updateBullets(dt);
         
-        enemyManager.updateFixed(  // 🔥 Новый метод без deltaTime
+        enemyManager.update(
             score,
             player.getBounds(),
             changeScore,
-            gameOver
+            gameOver,
+            dt
         );
         
         enemyManager.checkPlayerBullets(bullets, changeScore);
@@ -175,10 +174,13 @@ function gameLoop(currentTime) {
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
     } else if (gameStarted) {
+        // Game Over — показываем последний кадр
         renderer.drawBullets(bullets);
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
     }
+    
+    requestAnimationFrame(gameLoop);
 }
 
 // ====== ОБРАБОТЧИКИ UI ======
@@ -186,6 +188,7 @@ ui.onPlay(startGame);
 ui.onRestart(restart);
 ui.onMenu(backToMenu);
 
+// ====== ОБРАБОТЧИКИ ======
 window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -195,6 +198,8 @@ window.addEventListener('resize', () => {
 async function init() {
     ui.showStartScreen();
     await controls.init();
+    
+    // Запускаем единственный цикл
     requestAnimationFrame(gameLoop);
 }
 

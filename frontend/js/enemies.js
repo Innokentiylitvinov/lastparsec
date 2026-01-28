@@ -10,35 +10,40 @@ export class EnemyManager {
         this.asteroidTimer = 0;
     }
     
-    // 🔥 Интервал в КАДРАХ (как в оригинале)
+    // Интервал спавна в СЕКУНДАХ
     getSpawnInterval(score) {
-        return Math.max(30, 120 - score * 1.5);
+        return Math.max(0.5, 2 - score * 0.025); // от 2 сек до 0.5 сек
     }
     
-    // 🔥 Скорость в пикселях за КАДР
+    // Скорость в пикселях в СЕКУНДУ
     getEnemySpeed(score) {
-        return 1.5 + (score * 0.05);
+        return 90 + (score * 3); // 90 px/s базово
     }
     
-    // 🔥 НОВЫЙ метод — по кадрам
-    updateFixed(score, playerBounds, onScoreChange, onGameOver) {
+    // Интервал стрельбы в секундах (уменьшается с очками)
+    getShootInterval(score) {
+        // От 2 сек до 0.5 сек минимум
+        return Math.max(0.5, 2 - score * 0.01);
+    }
+
+    update(score, playerBounds, onScoreChange, onGameOver, deltaTime) {
         // Спавн врагов
-        this.spawnTimer++;
+        this.spawnTimer += deltaTime;
         if (this.spawnTimer > this.getSpawnInterval(score)) {
             this.spawnEnemy(score);
             this.spawnTimer = 0;
         }
         
-        // Спавн астероидов
-        this.asteroidTimer++;
-        if (this.asteroidTimer > this.getSpawnInterval(score) * 10) {
+        // Спавн астероидов (в 5 раз реже)
+        this.asteroidTimer += deltaTime;
+        if (this.asteroidTimer > this.getSpawnInterval(score) * 5) {
             this.spawnAsteroid();
             this.asteroidTimer = 0;
         }
         
-        this.updateEnemiesFixed(playerBounds, onScoreChange, onGameOver);
-        this.updateAsteroidsFixed(playerBounds, onScoreChange, onGameOver);
-        this.updateEnemyBulletsFixed(playerBounds, onGameOver);
+        this.updateEnemies(playerBounds, onScoreChange, onGameOver, deltaTime);
+        this.updateAsteroids(playerBounds, onScoreChange, onGameOver, deltaTime);
+        this.updateEnemyBullets(playerBounds, onGameOver, deltaTime);
     }
     
     spawnEnemy(score) {
@@ -54,13 +59,17 @@ export class EnemyManager {
         };
         
         if (type === 4) {
-            enemy.shootTimer = 60;  // Первый выстрел быстрее
-            enemy.shootInterval = 120;
+            // ✅ Начинаем с половины интервала — первый выстрел быстрее
+            const interval = this.getShootInterval(score);
+            enemy.shootTimer = interval * 0.5;
+            enemy.shootInterval = interval;
             enemy.canShoot = true;
         }
+
         
         this.enemies.push(enemy);
     }
+
     
     spawnAsteroid() {
         this.asteroids.push({
@@ -68,9 +77,9 @@ export class EnemyManager {
             y: -50,
             width: 50,
             height: 50,
-            speed: 1.5 + Math.random(),
+            speed: 90 + Math.random() * 60, // 90-150 px/s
             rotation: Math.random() * Math.PI * 2,
-            rotationSpeed: (Math.random() - 0.5) * 0.05
+            rotationSpeed: (Math.random() - 0.5) * 2 // радиан/с
         });
     }
     
@@ -81,17 +90,17 @@ export class EnemyManager {
             prevY: enemy.y + enemy.height / 2,
             width: 6,
             height: 15,
-            speed: 4  // 🔥 Как в оригинале
+            speed: Math.max(300, enemy.speed + 150) // всегда быстрее врага!
         });
     }
     
-    updateEnemiesFixed(playerBounds, onScoreChange, onGameOver) {
+    updateEnemies(playerBounds, onScoreChange, onGameOver, deltaTime) {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
-            enemy.y += enemy.speed;  // 🔥 Без deltaTime!
+            enemy.y += enemy.speed * deltaTime; // deltaTime!
             
             if (enemy.type === 4 && enemy.canShoot) {
-                enemy.shootTimer++;
+                enemy.shootTimer += deltaTime;
                 if (enemy.shootTimer >= enemy.shootInterval) {
                     this.enemyShoot(enemy);
                     enemy.shootTimer = 0;
@@ -115,11 +124,11 @@ export class EnemyManager {
         }
     }
     
-    updateAsteroidsFixed(playerBounds, onScoreChange, onGameOver) {
+    updateAsteroids(playerBounds, onScoreChange, onGameOver, deltaTime) {
         for (let i = this.asteroids.length - 1; i >= 0; i--) {
             const asteroid = this.asteroids[i];
-            asteroid.y += asteroid.speed;  // 🔥 Без deltaTime!
-            asteroid.rotation += asteroid.rotationSpeed;
+            asteroid.y += asteroid.speed * deltaTime; // deltaTime!
+            asteroid.rotation += asteroid.rotationSpeed * deltaTime;
             
             if (asteroid.y > this.canvas.height + 50) {
                 this.asteroids.splice(i, 1);
@@ -138,11 +147,11 @@ export class EnemyManager {
         }
     }
     
-    updateEnemyBulletsFixed(playerBounds, onGameOver) {
+    updateEnemyBullets(playerBounds, onGameOver, deltaTime) {
         for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
             const bullet = this.enemyBullets[i];
             bullet.prevY = bullet.y;
-            bullet.y += bullet.speed;  // 🔥 Без deltaTime!
+            bullet.y += bullet.speed * deltaTime; // deltaTime!
             
             if (bullet.y > this.canvas.height + bullet.height) {
                 this.enemyBullets.splice(i, 1);
@@ -154,11 +163,6 @@ export class EnemyManager {
                 return;
             }
         }
-    }
-    
-    // Старый метод для совместимости
-    update(score, playerBounds, onScoreChange, onGameOver, deltaTime) {
-        this.updateFixed(score, playerBounds, onScoreChange, onGameOver);
     }
     
     checkCollision(obj1, obj2) {

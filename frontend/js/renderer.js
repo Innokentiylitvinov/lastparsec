@@ -12,7 +12,7 @@ export class Renderer {
                 x: Math.random() * this.canvas.width,
                 y: Math.random() * this.canvas.height,
                 radius: Math.random() * 2,
-                speed: Math.random() * 2 + 0.5  // 🔥 Как в оригинале
+                speed: Math.random() * 2 + 0.5
             });
         }
     }
@@ -22,21 +22,18 @@ export class Renderer {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
-    // 🔥 НОВЫЙ метод — по кадрам, как в оригинале
-    updateStarsFixed() {
+    updateStars(deltaTime) {
+        const height = this.canvas.height;
+        const width = this.canvas.width;
+        
         for (let i = 0; i < this.stars.length; i++) {
             const star = this.stars[i];
-            star.y += star.speed;  // Просто +speed, без deltaTime!
-            if (star.y > this.canvas.height) {
+            star.y += star.speed * 30 * deltaTime;
+            if (star.y > height) {
                 star.y = 0;
-                star.x = Math.random() * this.canvas.width;
+                star.x = Math.random() * width;
             }
         }
-    }
-    
-    // Старый метод оставляем для совместимости
-    updateStars(deltaTime) {
-        this.updateStarsFixed();
     }
     
     drawStars() {
