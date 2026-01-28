@@ -1,50 +1,56 @@
 export class API {
-    constructor(baseUrl = '') {
-        this.baseUrl = baseUrl;
+    constructor() {
+        this.baseUrl = '';  // Тот же домен
         this.sessionId = null;
-        this.lastSessionId = null;
+        this.lastSessionId = null;  // 🆕 Сохраняем для AuthUI
     }
     
-    async request(endpoint, options = {}) {
+    // Начать игру — получить sessionId
+    async startGame() {
         try {
-            const response = await fetch(`${this.baseUrl}${endpoint}`, {
-                headers: { 'Content-Type': 'application/json' },
-                ...options
+            const response = await fetch(`${this.baseUrl}/api/game/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
             });
-            return await response.json();
+            
+            const data = await response.json();
+            this.sessionId = data.sessionId;
+            console.log('🎮 Session started:', this.sessionId);
+            return this.sessionId;
         } catch (error) {
-            console.error(`API Error [${endpoint}]:`, error);
+            console.error('Failed to start session:', error);
             return null;
         }
     }
     
-    async startGame() {
-        const data = await this.request('/api/game/start', { method: 'POST' });
-        if (data?.sessionId) {
-            this.sessionId = data.sessionId;
-            console.log('🎮 Session started:', this.sessionId);
-        }
-        return this.sessionId;
-    }
-    
+    // Закончить игру — отправить результат на валидацию
     async endGame(score) {
         if (!this.sessionId) {
             console.error('No active session');
             return { valid: false, reason: 'No session' };
         }
         
-        const data = await this.request('/api/game/end', {
-            method: 'POST',
-            body: JSON.stringify({ sessionId: this.sessionId, score })
-        });
-        
-        if (data) {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/game/end`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: this.sessionId,
+                    score: score
+                })
+            });
+            
+            const data = await response.json();
+            
+            // 🆕 Сохраняем sessionId для сохранения результата
             this.lastSessionId = this.sessionId;
             this.sessionId = null;
+            
             console.log('🏁 Game result:', data);
             return data;
+        } catch (error) {
+            console.error('Failed to end session:', error);
+            return { valid: false, reason: 'Network error' };
         }
-        
-        return { valid: false, reason: 'Network error' };
     }
 }

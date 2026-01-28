@@ -5,13 +5,9 @@ import { Renderer } from './renderer.js';
 import { UI } from './ui.js';
 import { API } from './api.js';
 
-// ====== СОСТОЯНИЕ ИГРЫ (объявляем ДО всех функций!) ======
-let isGameOver = false;
-let animationId = null;
-let score = 0;
-let lastFrameTime = 0;
-let gameStarted = false;
+// ====== СОСТОЯНИЕ ИГРЫ ======
 window.gameRunning = false;
+let gameStarted = false;
 
 const canvas = document.getElementById('gameCanvas');
 canvas.width = window.innerWidth;
@@ -41,6 +37,10 @@ function shoot() {
 
 const controls = new ControlSystem(shoot);
 
+// ====== ИГРОВЫЕ ПЕРЕМЕННЫЕ ======
+let score = 0;
+let lastFrameTime = 0;
+
 // ====== ФУНКЦИИ ИГРЫ ======
 function changeScore(delta) {
     score += delta;
@@ -48,38 +48,29 @@ function changeScore(delta) {
     return score;
 }
 
-async function gameOver(reason = '') {
-    console.log('gameOver called, isGameOver:', isGameOver); // Отладка
-    
-    if (isGameOver) return;
-    isGameOver = true;
-    
+async function gameOver(reason) {
     window.gameRunning = false;
     
-    if (animationId) {
-        cancelAnimationFrame(animationId);
-    }
-    
-    // Отправляем результат на сервер
     const result = await api.endGame(score);
     
-    // Уведомляем AuthUI
-    if (window.AuthUI?.setGameResult) {
-        window.AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
+    if (result.valid) {
+        if (typeof AuthUI !== 'undefined') {
+            AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
+        }
+        
+        let extra = `time: ${result.gameTime}с`;
+        if (result.isNewRecord) {
+            extra = `🏆 record Set! (${result.gameTime}с)`;
+        }
+        
+        ui.showGameOver(reason, score, extra);
+    } else {
+        ui.showGameOver(reason, score, `⚠️ score rejected`);
+        console.warn('Score rejected:', result.reason);
     }
-    
-    // Показываем экран Game Over
-    document.getElementById('finalScore').textContent = `Score: ${score}`;
-    document.getElementById('gameOverReason').textContent = reason || 'Game Over!';
-    document.getElementById('gameOver').style.display = 'flex';
 }
 
 async function startGame() {
-    // ВАЖНО: сброс флага в начале!
-    isGameOver = false;
-    score = 0;
-    lastFrameTime = 0;
-    
     ui.hideStartScreen();
     
     if (controls.isMobile && controls.gyroPermissionNeeded && !controls.gyroEnabled) {
@@ -97,6 +88,7 @@ async function startGame() {
         return;
     }
     
+    score = 0;
     ui.updateScore(score);
     ui.hideGameOver();
     
@@ -112,77 +104,88 @@ async function startGame() {
     
     window.gameRunning = true;
     gameStarted = true;
-    
-    // Запуск игрового цикла
-    animationId = requestAnimationFrame(gameLoop);
+}
+
+function restart() {
+    startGame();
 }
 
 function backToMenu() {
-    isGameOver = false;  // Сброс флага
     window.gameRunning = false;
     gameStarted = false;
-    
-    if (animationId) {
-        cancelAnimationFrame(animationId);
-    }
     
     bullets.length = 0;
     player.reset();
     enemyManager.reset();
     
     ui.hideGameOver();
-    
-    ['saveScoreScreen', 'leaderboardScreen', 'afterSaveButtons'].forEach(id => {
-        document.getElementById(id)?.classList.add('hidden');
-    });
+    document.getElementById('saveScoreScreen')?.classList.add('hidden');
+    document.getElementById('leaderboardScreen')?.classList.add('hidden');
+    document.getElementById('afterSaveButtons')?.classList.add('hidden');
     
     ui.showStartScreen();
 }
 
 // ====== ОБНОВЛЕНИЕ ПУЛЬ ======
-function updateBullets(dt) {
+function updateBullets(deltaTime) {
     for (let i = bullets.length - 1; i >= 0; i--) {
-        const bullet = bullets[i];
-        bullet.prevY = bullet.y;
-        bullet.y -= BULLET_SPEED * dt;
-        
-        if (bullet.y < -bullet.height) {
+        bullets[i].prevY = bullets[i].y;
+        bullets[i].y -= BULLET_SPEED * deltaTime;
+        if (bullets[i].y < -bullets[i].height) {
             bullets.splice(i, 1);
         }
     }
 }
 
-// ====== ИГРОВОЙ ЦИКЛ ======
+// ====== ОДИН ВЕЧНЫЙ ИГРОВОЙ ЦИКЛ ======
 function gameLoop(currentTime) {
-    if (isGameOver) return;  // Добавить проверку!
-    
-    if (lastFrameTime === 0) lastFrameTime = currentTime;
+    // Первый кадр
+    if (lastFrameTime === 0) {
+        lastFrameTime = currentTime;
+    }
     
     const deltaTime = (currentTime - lastFrameTime) / 1000;
     lastFrameTime = currentTime;
+    
+    // Защита от больших скачков
     const dt = Math.min(deltaTime, 0.1);
     
+    // Всегда рисуем фон и звёзды
     renderer.clear();
     renderer.updateStars(dt);
     renderer.drawStars();
     
+    // Игровая логика только когда игра запущена
     if (window.gameRunning) {
         player.update(controls, dt);
         updateBullets(dt);
-        enemyManager.update(score, player.getBounds(), changeScore, gameOver, dt);
+        
+        enemyManager.update(
+            score,
+            player.getBounds(),
+            changeScore,
+            gameOver,
+            dt
+        );
+        
         enemyManager.checkPlayerBullets(bullets, changeScore);
         
         renderer.drawBullets(bullets);
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
+    } else if (gameStarted) {
+        // Game Over — показываем последний кадр
+        renderer.drawBullets(bullets);
+        enemyManager.draw(renderer.getContext());
+        player.draw(renderer.getContext());
     }
     
-    animationId = requestAnimationFrame(gameLoop);
+    requestAnimationFrame(gameLoop);
 }
 
 // ====== ОБРАБОТЧИКИ UI ======
 ui.onPlay(startGame);
-ui.onRestart(startGame);
+ui.onRestart(restart);
 ui.onMenu(backToMenu);
 
 // ====== ОБРАБОТЧИКИ ======
@@ -195,6 +198,8 @@ window.addEventListener('resize', () => {
 async function init() {
     ui.showStartScreen();
     await controls.init();
+    
+    // Запускаем единственный цикл
     requestAnimationFrame(gameLoop);
 }
 
