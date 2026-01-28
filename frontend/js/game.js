@@ -5,10 +5,13 @@ import { Renderer } from './renderer.js';
 import { UI } from './ui.js';
 import { API } from './api.js';
 
-
-// ====== СОСТОЯНИЕ ИГРЫ ======
-window.gameRunning = false;
+// ====== СОСТОЯНИЕ ИГРЫ (объявляем ДО всех функций!) ======
+let isGameOver = false;
+let animationId = null;
+let score = 0;
+let lastFrameTime = 0;
 let gameStarted = false;
+window.gameRunning = false;
 
 const canvas = document.getElementById('gameCanvas');
 canvas.width = window.innerWidth;
@@ -38,10 +41,6 @@ function shoot() {
 
 const controls = new ControlSystem(shoot);
 
-// ====== ИГРОВЫЕ ПЕРЕМЕННЫЕ ======
-let score = 0;
-let lastFrameTime = 0;
-
 // ====== ФУНКЦИИ ИГРЫ ======
 function changeScore(delta) {
     score += delta;
@@ -50,43 +49,37 @@ function changeScore(delta) {
 }
 
 async function gameOver(reason = '') {
+    console.log('gameOver called, isGameOver:', isGameOver); // Отладка
+    
     if (isGameOver) return;
     isGameOver = true;
     
-    cancelAnimationFrame(animationId);
+    window.gameRunning = false;
+    
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+    }
     
     // Отправляем результат на сервер
     const result = await api.endGame(score);
     
-    // === ИСПРАВЛЕННЫЙ КОД ===
-    // Безопасно уведомляем AuthUI о результате
+    // Уведомляем AuthUI
     if (window.AuthUI?.setGameResult) {
         window.AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
     }
-    // === КОНЕЦ ИСПРАВЛЕНИЯ ===
     
     // Показываем экран Game Over
-    const gameOverScreen = document.getElementById('gameOver');
-    const finalScore = document.getElementById('finalScore');
-    const validationStatus = document.getElementById('validationStatus');
-    
-    finalScore.textContent = `Score: ${score}`;
-    
-    if (result.valid) {
-        validationStatus.textContent = result.isNewRecord 
-            ? '🏆 New Record!' 
-            : '✓ Result verified';
-        validationStatus.className = 'validation-success';
-    } else {
-        validationStatus.textContent = `⚠ ${result.reason || 'Verification failed'}`;
-        validationStatus.className = 'validation-error';
-    }
-    
-    gameOverScreen.style.display = 'flex';
+    document.getElementById('finalScore').textContent = `Score: ${score}`;
+    document.getElementById('gameOverReason').textContent = reason || 'Game Over!';
+    document.getElementById('gameOver').style.display = 'flex';
 }
 
-
 async function startGame() {
+    // ВАЖНО: сброс флага в начале!
+    isGameOver = false;
+    score = 0;
+    lastFrameTime = 0;
+    
     ui.hideStartScreen();
     
     if (controls.isMobile && controls.gyroPermissionNeeded && !controls.gyroEnabled) {
@@ -104,7 +97,6 @@ async function startGame() {
         return;
     }
     
-    score = 0;
     ui.updateScore(score);
     ui.hideGameOver();
     
@@ -120,11 +112,19 @@ async function startGame() {
     
     window.gameRunning = true;
     gameStarted = true;
+    
+    // Запуск игрового цикла
+    animationId = requestAnimationFrame(gameLoop);
 }
 
 function backToMenu() {
+    isGameOver = false;  // Сброс флага
     window.gameRunning = false;
     gameStarted = false;
+    
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+    }
     
     bullets.length = 0;
     player.reset();
@@ -132,7 +132,6 @@ function backToMenu() {
     
     ui.hideGameOver();
     
-    // Скрываем все оверлеи
     ['saveScoreScreen', 'leaderboardScreen', 'afterSaveButtons'].forEach(id => {
         document.getElementById(id)?.classList.add('hidden');
     });
@@ -155,6 +154,8 @@ function updateBullets(dt) {
 
 // ====== ИГРОВОЙ ЦИКЛ ======
 function gameLoop(currentTime) {
+    if (isGameOver) return;  // Добавить проверку!
+    
     if (lastFrameTime === 0) lastFrameTime = currentTime;
     
     const deltaTime = (currentTime - lastFrameTime) / 1000;
@@ -176,7 +177,7 @@ function gameLoop(currentTime) {
         player.draw(renderer.getContext());
     }
     
-    requestAnimationFrame(gameLoop);
+    animationId = requestAnimationFrame(gameLoop);
 }
 
 // ====== ОБРАБОТЧИКИ UI ======
