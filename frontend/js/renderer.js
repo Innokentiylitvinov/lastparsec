@@ -3,18 +3,18 @@ export class Renderer {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.stars = [];
+        this.starCount = 120;
         this.initStars();
     }
     
     initStars() {
-        for (let i = 0; i < 120; i++) {
-            this.stars.push({
-                x: Math.random() * this.canvas.width,
-                y: Math.random() * this.canvas.height,
-                radius: Math.random() * 2,
-                speed: Math.random() * 2 + 0.5
-            });
-        }
+        const { width, height } = this.canvas;
+        this.stars = Array.from({ length: this.starCount }, () => ({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            radius: Math.random() * 2,
+            speed: Math.random() * 2 + 0.5
+        }));
     }
     
     clear() {
@@ -23,12 +23,11 @@ export class Renderer {
     }
     
     updateStars(deltaTime) {
-        const height = this.canvas.height;
-        const width = this.canvas.width;
+        const { height, width } = this.canvas;
+        const multiplier = 30 * deltaTime;
         
-        for (let i = 0; i < this.stars.length; i++) {
-            const star = this.stars[i];
-            star.y += star.speed * 30 * deltaTime;
+        for (const star of this.stars) {
+            star.y += star.speed * multiplier;
             if (star.y > height) {
                 star.y = 0;
                 star.x = Math.random() * width;
@@ -37,11 +36,10 @@ export class Renderer {
     }
     
     drawStars() {
-        const ctx = this.ctx;
+        const { ctx, stars } = this;
         ctx.fillStyle = '#FFF';
         
-        for (let i = 0; i < this.stars.length; i++) {
-            const star = this.stars[i];
+        for (const star of stars) {
             ctx.beginPath();
             ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
             ctx.fill();
@@ -49,17 +47,16 @@ export class Renderer {
     }
     
     drawBullets(bullets) {
-        if (bullets.length === 0) return;
+        if (!bullets.length) return;
         
-        const ctx = this.ctx;
+        const { ctx } = this;
         ctx.fillStyle = '#FFFF00';
         
-        for (let i = 0; i < bullets.length; i++) {
-            const bullet = bullets[i];
+        for (const bullet of bullets) {
             ctx.fillRect(
-                bullet.x - bullet.width / 2, 
-                bullet.y, 
-                bullet.width, 
+                bullet.x - bullet.width / 2,
+                bullet.y,
+                bullet.width,
                 bullet.height
             );
         }
@@ -67,5 +64,15 @@ export class Renderer {
     
     getContext() {
         return this.ctx;
+    }
+    
+    // Вызывать при resize
+    onResize() {
+        // Перераспределяем звёзды при изменении размера
+        for (const star of this.stars) {
+            if (star.x > this.canvas.width) {
+                star.x = Math.random() * this.canvas.width;
+            }
+        }
     }
 }

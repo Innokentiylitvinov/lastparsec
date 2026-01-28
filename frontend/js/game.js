@@ -4,6 +4,13 @@ import { EnemyManager } from './enemies.js';
 import { Renderer } from './renderer.js';
 import { UI } from './ui.js';
 import { API } from './api.js';
+import { Renderer } from './renderer.js';
+import { Player } from './player.js';
+import { EnemyManager } from './enemies.js';
+import { Controls } from './controls.js';
+import { API } from './api.js';
+import { AuthUI } from './auth.js';  // Добавить этот импорт
+
 
 // ====== СОСТОЯНИЕ ИГРЫ ======
 window.gameRunning = false;
@@ -48,27 +55,42 @@ function changeScore(delta) {
     return score;
 }
 
-async function gameOver(reason) {
-    window.gameRunning = false;
+async function gameOver(reason = '') {
+    if (isGameOver) return;
+    isGameOver = true;
     
+    cancelAnimationFrame(animationId);
+    
+    // Отправляем результат на сервер
     const result = await api.endGame(score);
     
-    if (result.valid) {
-        // Проверяем наличие AuthUI через window
-        if (window.AuthUI) {
-            window.AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
-        }
-        
-        const extra = result.isNewRecord 
-            ? `🏆 record Set! (${result.gameTime}с)` 
-            : `time: ${result.gameTime}с`;
-        
-        ui.showGameOver(reason, score, extra);
-    } else {
-        ui.showGameOver(reason, score, '⚠️ score rejected');
-        console.warn('Score rejected:', result.reason);
+    // === ИСПРАВЛЕННЫЙ КОД ===
+    // Безопасно уведомляем AuthUI о результате
+    if (window.AuthUI?.setGameResult) {
+        window.AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
     }
+    // === КОНЕЦ ИСПРАВЛЕНИЯ ===
+    
+    // Показываем экран Game Over
+    const gameOverScreen = document.getElementById('gameOver');
+    const finalScore = document.getElementById('finalScore');
+    const validationStatus = document.getElementById('validationStatus');
+    
+    finalScore.textContent = `Score: ${score}`;
+    
+    if (result.valid) {
+        validationStatus.textContent = result.isNewRecord 
+            ? '🏆 New Record!' 
+            : '✓ Result verified';
+        validationStatus.className = 'validation-success';
+    } else {
+        validationStatus.textContent = `⚠ ${result.reason || 'Verification failed'}`;
+        validationStatus.className = 'validation-error';
+    }
+    
+    gameOverScreen.style.display = 'flex';
 }
+
 
 async function startGame() {
     ui.hideStartScreen();
