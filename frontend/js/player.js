@@ -9,22 +9,25 @@ export class Player {
         this.image = null;
     }
     
-    update(controls, deltaTime) {
-        // Мобильное управление (гироскоп)
-        const gyroSpeed = controls.getPlayerSpeed(this.canvas.width, deltaTime);
+    // 🔥 НОВЫЙ метод — по кадрам
+    updateFixed(controls) {
+        const gyroSpeed = controls.getPlayerSpeedFixed(this.canvas.width);
         
         if (gyroSpeed !== null) {
             this.x += gyroSpeed;
         } else {
-            // Десктоп — следуем за мышью
             const mouseX = controls.getMouseX();
             if (mouseX !== null) {
                 this.x = mouseX;
             }
         }
         
-        // Ограничение в пределах экрана
         this.x = Math.max(this.width / 2, Math.min(this.canvas.width - this.width / 2, this.x));
+    }
+    
+    // Старый метод для совместимости
+    update(controls, deltaTime) {
+        this.updateFixed(controls);
     }
     
     draw(ctx) {

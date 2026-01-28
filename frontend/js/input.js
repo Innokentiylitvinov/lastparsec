@@ -21,6 +21,7 @@ export const DeviceDetector = {
                (this.isAndroid() && !/mobile/.test(this.userAgent));
     },
     
+    
     getDeviceInfo() {
         return {
             type: this.isMobile() ? 'mobile' : 'desktop',
@@ -41,7 +42,10 @@ export const DeviceDetector = {
         const deviceType = deviceInfo.isTablet ? 'tablet' : 'phone';
         return settings[deviceInfo.os][deviceType];
     }
+
+    
 };
+
 
 // ====== СИСТЕМА УПРАВЛЕНИЯ ======
 export class ControlSystem {
@@ -189,6 +193,17 @@ export class ControlSystem {
         const normalizedTilt = Math.max(-1, Math.min(1, this.currentTilt / this.maxTiltAngle));
         const maxSpeed = canvasWidth * this.maxSpeedPercent;
         return normalizedTilt * maxSpeed * deltaTime * 60;
+    }
+    
+    // 🔥 НОВЫЙ метод — по кадрам
+    getPlayerSpeedFixed(canvasWidth) {
+        if (!this.isMobile || !this.gyroEnabled) {
+            return null;
+        }
+        
+        const normalizedTilt = Math.max(-1, Math.min(1, this.currentTilt / this.maxTiltAngle));
+        const maxSpeed = canvasWidth * this.maxSpeedPercent;
+        return normalizedTilt * maxSpeed;  // Без deltaTime!
     }
     
     getMouseX() {
