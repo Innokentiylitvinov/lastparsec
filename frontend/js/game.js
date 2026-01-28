@@ -54,18 +54,18 @@ async function gameOver(reason) {
     const result = await api.endGame(score);
     
     if (result.valid) {
-        if (typeof AuthUI !== 'undefined') {
-            AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
+        // Проверяем наличие AuthUI через window
+        if (window.AuthUI) {
+            window.AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
         }
         
-        let extra = `time: ${result.gameTime}с`;
-        if (result.isNewRecord) {
-            extra = `🏆 record Set! (${result.gameTime}с)`;
-        }
+        const extra = result.isNewRecord 
+            ? `🏆 record Set! (${result.gameTime}с)` 
+            : `time: ${result.gameTime}с`;
         
         ui.showGameOver(reason, score, extra);
     } else {
-        ui.showGameOver(reason, score, `⚠️ score rejected`);
+        ui.showGameOver(reason, score, '⚠️ score rejected');
         console.warn('Score rejected:', result.reason);
     }
 }
@@ -106,10 +106,6 @@ async function startGame() {
     gameStarted = true;
 }
 
-function restart() {
-    startGame();
-}
-
 function backToMenu() {
     window.gameRunning = false;
     gameStarted = false;
@@ -119,9 +115,11 @@ function backToMenu() {
     enemyManager.reset();
     
     ui.hideGameOver();
-    document.getElementById('saveScoreScreen')?.classList.add('hidden');
-    document.getElementById('leaderboardScreen')?.classList.add('hidden');
-    document.getElementById('afterSaveButtons')?.classList.add('hidden');
+    
+    // Скрываем все оверлеи
+    ['saveScoreScreen', 'leaderboardScreen', 'afterSaveButtons'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+    });
     
     ui.showStartScreen();
 }
@@ -129,38 +127,34 @@ function backToMenu() {
 // ====== ОБНОВЛЕНИЕ ПУЛЬ ======
 function updateBullets(dt) {
     for (let i = bullets.length - 1; i >= 0; i--) {
-        bullets[i].prevY = bullets[i].y;
-        bullets[i].y -= BULLET_SPEED * dt;
-        if (bullets[i].y < -bullets[i].height) {
+        const bullet = bullets[i];
+        bullet.prevY = bullet.y;
+        bullet.y -= BULLET_SPEED * dt;
+        
+        if (bullet.y < -bullet.height) {
             bullets.splice(i, 1);
         }
     }
 }
 
-// ====== ИГРОВОЙ ЦИКЛ (БЕЗ FPS ЛИМИТЕРА!) ======
+// ====== ИГРОВОЙ ЦИКЛ ======
 function gameLoop(currentTime) {
-    // Считаем deltaTime
-    if (lastFrameTime === 0) {
-        lastFrameTime = currentTime;
-    }
+    if (lastFrameTime === 0) lastFrameTime = currentTime;
+    
     const deltaTime = (currentTime - lastFrameTime) / 1000;
     lastFrameTime = currentTime;
-    const dt = Math.min(deltaTime, 0.1); // Защита от больших скачков
+    const dt = Math.min(deltaTime, 0.1);
     
-    // Очищаем и рисуем звёзды (ВСЕГДА)
     renderer.clear();
     renderer.updateStars(dt);
     renderer.drawStars();
     
-    // Игровая логика (только когда игра запущена)
     if (window.gameRunning) {
-        // Обновление
         player.update(controls, dt);
         updateBullets(dt);
         enemyManager.update(score, player.getBounds(), changeScore, gameOver, dt);
         enemyManager.checkPlayerBullets(bullets, changeScore);
         
-        // Отрисовка
         renderer.drawBullets(bullets);
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
@@ -171,7 +165,7 @@ function gameLoop(currentTime) {
 
 // ====== ОБРАБОТЧИКИ UI ======
 ui.onPlay(startGame);
-ui.onRestart(restart);
+ui.onRestart(startGame);
 ui.onMenu(backToMenu);
 
 // ====== ОБРАБОТЧИКИ ======

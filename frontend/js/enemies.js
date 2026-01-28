@@ -10,33 +10,29 @@ export class EnemyManager {
         this.asteroidTimer = 0;
     }
     
-    // Интервал спавна в СЕКУНДАХ
     getSpawnInterval(score) {
-        return Math.max(0.5, 2 - score * 0.025); // от 2 сек до 0.5 сек
+        return Math.max(0.5, 2 - score * 0.025);
     }
     
-    // Скорость в пикселях в СЕКУНДУ
     getEnemySpeed(score) {
-        return 90 + (score * 3); // 90 px/s базово
+        return 90 + score * 3;
     }
     
-    // Интервал стрельбы в секундах (уменьшается с очками)
     getShootInterval(score) {
-        // От 2 сек до 0.5 сек минимум
         return Math.max(0.55, 2 - score * 0.01);
     }
 
     update(score, playerBounds, onScoreChange, onGameOver, deltaTime) {
-        // Спавн врагов
         this.spawnTimer += deltaTime;
-        if (this.spawnTimer > this.getSpawnInterval(score)) {
+        const spawnInterval = this.getSpawnInterval(score);
+        
+        if (this.spawnTimer > spawnInterval) {
             this.spawnEnemy(score);
             this.spawnTimer = 0;
         }
         
-        // Спавн астероидов (в 5 раз реже)
         this.asteroidTimer += deltaTime;
-        if (this.asteroidTimer > this.getSpawnInterval(score) * 5) {
+        if (this.asteroidTimer > spawnInterval * 5) {
             this.spawnAsteroid();
             this.asteroidTimer = 0;
         }
@@ -48,38 +44,38 @@ export class EnemyManager {
     
     spawnEnemy(score) {
         const type = Math.floor(Math.random() * 5);
+        const canvasWidth = this.canvas.width;
+        
         const enemy = {
-            x: Math.random() * (this.canvas.width - 40) + 20,
+            x: Math.random() * (canvasWidth - 40) + 20,
             y: -40,
             width: 35,
             height: 35,
             speed: this.getEnemySpeed(score),
-            type: type,
+            type,
             color: ENEMY_COLORS[type]
         };
         
         if (type === 4) {
-            // ✅ Начинаем с половины интервала — первый выстрел быстрее
             const interval = this.getShootInterval(score);
             enemy.shootTimer = interval * 0.5;
             enemy.shootInterval = interval;
             enemy.canShoot = true;
         }
-
         
         this.enemies.push(enemy);
     }
-
     
     spawnAsteroid() {
+        const canvasWidth = this.canvas.width;
         this.asteroids.push({
-            x: Math.random() * (this.canvas.width - 50) + 25,
+            x: Math.random() * (canvasWidth - 50) + 25,
             y: -50,
             width: 50,
             height: 50,
-            speed: 90 + Math.random() * 60, // 90-150 px/s
+            speed: 90 + Math.random() * 60,
             rotation: Math.random() * Math.PI * 2,
-            rotationSpeed: (Math.random() - 0.5) * 2 // радиан/с
+            rotationSpeed: (Math.random() - 0.5) * 2
         });
     }
     
@@ -90,16 +86,19 @@ export class EnemyManager {
             prevY: enemy.y + enemy.height / 2,
             width: 6,
             height: 15,
-            speed: Math.max(300, enemy.speed + 150) // всегда быстрее врага!
+            speed: Math.max(300, enemy.speed + 150)
         });
     }
     
     updateEnemies(playerBounds, onScoreChange, onGameOver, deltaTime) {
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            const enemy = this.enemies[i];
-            enemy.y += enemy.speed * deltaTime; // deltaTime!
+        const enemies = this.enemies;
+        const canvasHeight = this.canvas.height;
+        
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const enemy = enemies[i];
+            enemy.y += enemy.speed * deltaTime;
             
-            if (enemy.type === 4 && enemy.canShoot) {
+            if (enemy.canShoot) {
                 enemy.shootTimer += deltaTime;
                 if (enemy.shootTimer >= enemy.shootInterval) {
                     this.enemyShoot(enemy);
@@ -107,10 +106,9 @@ export class EnemyManager {
                 }
             }
             
-            if (enemy.y > this.canvas.height + 40) {
-                this.enemies.splice(i, 1);
-                const newScore = onScoreChange(-1);
-                if (newScore < 0) {
+            if (enemy.y > canvasHeight + 40) {
+                enemies.splice(i, 1);
+                if (onScoreChange(-1) < 0) {
                     onGameOver('Too many enemies escaped!');
                     return;
                 }
@@ -125,15 +123,17 @@ export class EnemyManager {
     }
     
     updateAsteroids(playerBounds, onScoreChange, onGameOver, deltaTime) {
-        for (let i = this.asteroids.length - 1; i >= 0; i--) {
-            const asteroid = this.asteroids[i];
-            asteroid.y += asteroid.speed * deltaTime; // deltaTime!
+        const asteroids = this.asteroids;
+        const canvasHeight = this.canvas.height;
+        
+        for (let i = asteroids.length - 1; i >= 0; i--) {
+            const asteroid = asteroids[i];
+            asteroid.y += asteroid.speed * deltaTime;
             asteroid.rotation += asteroid.rotationSpeed * deltaTime;
             
-            if (asteroid.y > this.canvas.height + 50) {
-                this.asteroids.splice(i, 1);
-                const newScore = onScoreChange(-1);
-                if (newScore < 0) {
+            if (asteroid.y > canvasHeight + 50) {
+                asteroids.splice(i, 1);
+                if (onScoreChange(-1) < 0) {
                     onGameOver('Too many objects escaped!');
                     return;
                 }
@@ -148,13 +148,16 @@ export class EnemyManager {
     }
     
     updateEnemyBullets(playerBounds, onGameOver, deltaTime) {
-        for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
-            const bullet = this.enemyBullets[i];
+        const bullets = this.enemyBullets;
+        const canvasHeight = this.canvas.height;
+        
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            const bullet = bullets[i];
             bullet.prevY = bullet.y;
-            bullet.y += bullet.speed * deltaTime; // deltaTime!
+            bullet.y += bullet.speed * deltaTime;
             
-            if (bullet.y > this.canvas.height + bullet.height) {
-                this.enemyBullets.splice(i, 1);
+            if (bullet.y > canvasHeight + bullet.height) {
+                bullets.splice(i, 1);
                 continue;
             }
             
@@ -166,46 +169,51 @@ export class EnemyManager {
     }
     
     checkCollision(obj1, obj2) {
-        return obj1.x + obj1.width / 2 > obj2.x - obj2.width / 2 &&
-               obj1.x - obj1.width / 2 < obj2.x + obj2.width / 2 &&
-               obj1.y + obj1.height / 2 > obj2.y - obj2.height / 2 &&
-               obj1.y - obj1.height / 2 < obj2.y + obj2.height / 2;
+        const hw1 = obj1.width / 2, hh1 = obj1.height / 2;
+        const hw2 = obj2.width / 2, hh2 = obj2.height / 2;
+        
+        return obj1.x + hw1 > obj2.x - hw2 &&
+               obj1.x - hw1 < obj2.x + hw2 &&
+               obj1.y + hh1 > obj2.y - hh2 &&
+               obj1.y - hh1 < obj2.y + hh2;
     }
     
     checkBulletCollision(bullet, target) {
-        const bulletLeft = bullet.x - bullet.width / 2;
-        const bulletRight = bullet.x + bullet.width / 2;
-        const bulletTop = bullet.y;
-        const bulletBottom = bullet.y + bullet.height;
+        const bLeft = bullet.x - bullet.width / 2;
+        const bRight = bullet.x + bullet.width / 2;
+        const bTop = bullet.y;
+        const bBottom = bullet.y + bullet.height;
         
-        const targetLeft = target.x - target.width / 2;
-        const targetRight = target.x + target.width / 2;
-        const targetTop = target.y - target.height / 2;
-        const targetBottom = target.y + target.height / 2;
+        const tLeft = target.x - target.width / 2;
+        const tRight = target.x + target.width / 2;
+        const tTop = target.y - target.height / 2;
+        const tBottom = target.y + target.height / 2;
         
-        if (bulletRight > targetLeft && bulletLeft < targetRight &&
-            bulletBottom > targetTop && bulletTop < targetBottom) {
+        // Стандартная проверка
+        if (bRight > tLeft && bLeft < tRight && bBottom > tTop && bTop < tBottom) {
             return true;
         }
         
-        if (bullet.prevY !== undefined) {
-            const prevTop = bullet.prevY;
-            if (bulletRight > targetLeft && bulletLeft < targetRight &&
-                prevTop <= targetBottom && bulletBottom >= targetTop) {
-                return true;
-            }
+        // Проверка "туннелирования"
+        if (bullet.prevY !== undefined && bRight > tLeft && bLeft < tRight &&
+            bullet.prevY <= tBottom && bBottom >= tTop) {
+            return true;
         }
         
         return false;
     }
     
     checkPlayerBullets(bullets, onScoreChange) {
+        const enemies = this.enemies;
+        const asteroids = this.asteroids;
+        
         for (let i = bullets.length - 1; i >= 0; i--) {
+            const bullet = bullets[i];
             let hit = false;
             
-            for (let j = this.enemies.length - 1; j >= 0; j--) {
-                if (this.checkBulletCollision(bullets[i], this.enemies[j])) {
-                    this.enemies.splice(j, 1);
+            for (let j = enemies.length - 1; j >= 0; j--) {
+                if (this.checkBulletCollision(bullet, enemies[j])) {
+                    enemies.splice(j, 1);
                     bullets.splice(i, 1);
                     onScoreChange(1);
                     hit = true;
@@ -215,9 +223,9 @@ export class EnemyManager {
             
             if (hit) continue;
             
-            for (let j = this.asteroids.length - 1; j >= 0; j--) {
-                if (this.checkBulletCollision(bullets[i], this.asteroids[j])) {
-                    this.asteroids.splice(j, 1);
+            for (let j = asteroids.length - 1; j >= 0; j--) {
+                if (this.checkBulletCollision(bullet, asteroids[j])) {
+                    asteroids.splice(j, 1);
                     bullets.splice(i, 1);
                     onScoreChange(1);
                     break;
@@ -227,58 +235,72 @@ export class EnemyManager {
     }
     
     draw(ctx) {
+        const enemies = this.enemies;
+        const asteroids = this.asteroids;
+        const enemyBullets = this.enemyBullets;
+        
         // Враги
-        this.enemies.forEach(enemy => {
+        for (let i = 0, len = enemies.length; i < len; i++) {
+            const enemy = enemies[i];
             ctx.fillStyle = enemy.color;
+            
             if (enemy.type === 4) {
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = enemy.color;
             }
+            
             ctx.beginPath();
             ctx.moveTo(enemy.x, enemy.y + enemy.height / 2);
             ctx.lineTo(enemy.x - enemy.width / 2, enemy.y - enemy.height / 2);
             ctx.lineTo(enemy.x + enemy.width / 2, enemy.y - enemy.height / 2);
             ctx.closePath();
             ctx.fill();
-            ctx.shadowBlur = 0;
-        });
+            
+            if (enemy.type === 4) ctx.shadowBlur = 0;
+        }
         
         // Астероиды
-        this.asteroids.forEach(asteroid => {
+        ctx.fillStyle = '#00FF00';
+        for (let i = 0, len = asteroids.length; i < len; i++) {
+            const asteroid = asteroids[i];
             ctx.save();
             ctx.translate(asteroid.x, asteroid.y);
             ctx.rotate(asteroid.rotation);
-            ctx.fillStyle = '#00FF00';
             ctx.beginPath();
-            for (let i = 0; i < 5; i++) {
-                const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-                const x = Math.cos(angle) * asteroid.width / 2;
-                const y = Math.sin(angle) * asteroid.height / 2;
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
+            
+            const hw = asteroid.width / 2;
+            const hh = asteroid.height / 2;
+            for (let j = 0; j < 5; j++) {
+                const angle = (Math.PI * 2 * j) / 5 - Math.PI / 2;
+                const x = Math.cos(angle) * hw;
+                const y = Math.sin(angle) * hh;
+                j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
             }
+            
             ctx.closePath();
             ctx.fill();
             ctx.restore();
-        });
+        }
         
         // Пули врагов
-        ctx.fillStyle = '#FF00FF';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#FF00FF';
-        this.enemyBullets.forEach(bullet => {
-            ctx.fillRect(bullet.x - bullet.width / 2, bullet.y, bullet.width, bullet.height);
-        });
-        ctx.shadowBlur = 0;
+        if (enemyBullets.length > 0) {
+            ctx.fillStyle = '#FF00FF';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#FF00FF';
+            
+            for (let i = 0, len = enemyBullets.length; i < len; i++) {
+                const bullet = enemyBullets[i];
+                ctx.fillRect(bullet.x - bullet.width / 2, bullet.y, bullet.width, bullet.height);
+            }
+            
+            ctx.shadowBlur = 0;
+        }
     }
     
     reset() {
-        this.enemies = [];
-        this.asteroids = [];
-        this.enemyBullets = [];
+        this.enemies.length = 0;
+        this.asteroids.length = 0;
+        this.enemyBullets.length = 0;
         this.spawnTimer = 0;
         this.asteroidTimer = 0;
     }

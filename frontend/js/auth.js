@@ -1,5 +1,4 @@
 // ====== AUTH MODULE ======
-
 const Auth = {
     token: localStorage.getItem('authToken'),
     nickname: localStorage.getItem('authNickname'),
@@ -14,8 +13,7 @@ const Auth = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nickname })
         });
-        const data = await res.json();
-        return data.available;
+        return (await res.json()).available;
     },
     
     async register(nickname, password) {
@@ -25,10 +23,7 @@ const Auth = {
             body: JSON.stringify({ nickname, password })
         });
         
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.error);
-        }
+        if (!res.ok) throw new Error((await res.json()).error);
         
         const data = await res.json();
         this.saveAuth(data.token, data.nickname);
@@ -42,10 +37,7 @@ const Auth = {
             body: JSON.stringify({ nickname, password })
         });
         
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.error);
-        }
+        if (!res.ok) throw new Error((await res.json()).error);
         
         const data = await res.json();
         this.saveAuth(data.token, data.nickname);
@@ -64,7 +56,7 @@ const Auth = {
             return null;
         }
         
-        return await res.json();
+        return res.json();
     },
     
     saveAuth(token, nickname) {
@@ -82,9 +74,7 @@ const Auth = {
     },
     
     async saveScore(sessionId) {
-        if (!this.token) {
-            throw new Error('Not logged in');
-        }
+        if (!this.token) throw new Error('Not logged in');
         
         const res = await fetch('/api/scores', {
             method: 'POST',
@@ -95,123 +85,131 @@ const Auth = {
             body: JSON.stringify({ sessionId })
         });
         
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.error);
-        }
+        if (!res.ok) throw new Error((await res.json()).error);
         
-        return await res.json();
+        return res.json();
     },
     
     async getLeaderboard() {
-        const res = await fetch('/api/leaderboard');
-        return await res.json();
+        return (await fetch('/api/leaderboard')).json();
     }
 };
 
 // ====== UI CONTROLLER ======
-
 const AuthUI = {
     currentSessionId: null,
     currentScore: 0,
-    currentIsNewRecord: true,  // ✅ Добавлено
+    currentIsNewRecord: true,
     isNewUser: null,
+    elements: null,
+    
+    cacheElements() {
+        if (this.elements) return;
+        
+        this.elements = {
+            leaderboardButton: document.getElementById('leaderboardButton'),
+            leaderboardBackButton: document.getElementById('leaderboardBackButton'),
+            saveScoreButton: document.getElementById('saveScoreButton'),
+            skipSaveButton: document.getElementById('skipSaveButton'),
+            nicknameInput: document.getElementById('nicknameInput'),
+            passwordInput: document.getElementById('passwordInput'),
+            authSubmitButton: document.getElementById('authSubmitButton'),
+            playAgainAfterSave: document.getElementById('playAgainAfterSave'),
+            menuAfterSave: document.getElementById('menuAfterSave'),
+            startScreen: document.getElementById('startScreen'),
+            leaderboardScreen: document.getElementById('leaderboardScreen'),
+            leaderboardList: document.getElementById('leaderboardList'),
+            saveScoreScreen: document.getElementById('saveScoreScreen'),
+            gameOver: document.getElementById('gameOver'),
+            authForm: document.getElementById('authForm'),
+            saveResult: document.getElementById('saveResult'),
+            afterSaveButtons: document.getElementById('afterSaveButtons'),
+            userNickname: document.getElementById('userNickname'),
+            logoutButton: document.getElementById('logoutButton'),
+            saveScoreInfo: document.getElementById('saveScoreInfo'),
+            nicknameStatus: document.getElementById('nicknameStatus'),
+            passwordHint: document.getElementById('passwordHint')
+        };
+    },
     
     init() {
+        this.cacheElements();
         this.bindEvents();
         this.updateUserStatus();
     },
     
     bindEvents() {
-        // Лидерборд
-        document.getElementById('leaderboardButton')?.addEventListener('click', () => this.showLeaderboard());
-        document.getElementById('leaderboardBackButton')?.addEventListener('click', () => this.hideLeaderboard());
+        const el = this.elements;
         
-        // Сохранение результата
-        document.getElementById('saveScoreButton')?.addEventListener('click', () => this.showSaveScore());
-        document.getElementById('skipSaveButton')?.addEventListener('click', () => this.hideSaveScore());
-        
-        // Форма авторизации
-        document.getElementById('nicknameInput')?.addEventListener('input', (e) => this.onNicknameInput(e));
-        document.getElementById('authSubmitButton')?.addEventListener('click', () => this.onSubmit());
-        
-        // Enter для отправки
-        document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
+        el.leaderboardButton?.addEventListener('click', () => this.showLeaderboard());
+        el.leaderboardBackButton?.addEventListener('click', () => this.hideLeaderboard());
+        el.saveScoreButton?.addEventListener('click', () => this.showSaveScore());
+        el.skipSaveButton?.addEventListener('click', () => this.hideSaveScore());
+        el.nicknameInput?.addEventListener('input', (e) => this.onNicknameInput(e));
+        el.authSubmitButton?.addEventListener('click', () => this.onSubmit());
+        el.passwordInput?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.onSubmit();
         });
-        
-        // Кнопки после сохранения
-        document.getElementById('playAgainAfterSave')?.addEventListener('click', () => this.playAgain());
-        document.getElementById('menuAfterSave')?.addEventListener('click', () => this.goToMenu());
+        el.playAgainAfterSave?.addEventListener('click', () => this.playAgain());
+        el.menuAfterSave?.addEventListener('click', () => this.goToMenu());
     },
 
-
-        // ✅ Новая функция — играть снова
     playAgain() {
-        document.getElementById('saveScoreScreen').classList.add('hidden');
-        document.getElementById('afterSaveButtons')?.classList.add('hidden');
+        this.elements.saveScoreScreen.classList.add('hidden');
+        this.elements.afterSaveButtons?.classList.add('hidden');
         this.resetSaveScreen();
-            
-        // Вызываем глобальный старт игры
+        
         if (typeof window.startGame === 'function') {
             window.startGame();
         }
     },
 
-        // ✅ Сброс экрана сохранения для следующего раза
     resetSaveScreen() {
-        document.getElementById('authForm')?.classList.remove('hidden');
-        document.getElementById('saveResult')?.classList.add('hidden');
-        document.getElementById('skipSaveButton')?.classList.remove('hidden');
-        document.getElementById('afterSaveButtons')?.classList.add('hidden');
+        const el = this.elements;
+        el.authForm?.classList.remove('hidden');
+        el.saveResult?.classList.add('hidden');
+        el.skipSaveButton?.classList.remove('hidden');
+        el.afterSaveButtons?.classList.add('hidden');
     },
     
     updateUserStatus() {
-        const nicknameEl = document.getElementById('userNickname');
-        const logoutBtn = document.getElementById('logoutButton');
-        
-        if (!nicknameEl) return;
+        const el = this.elements;
+        if (!el.userNickname) return;
         
         if (Auth.isLoggedIn()) {
-            nicknameEl.innerHTML = `<span class="logged-in">${Auth.nickname}</span>`;
-            logoutBtn?.classList.remove('hidden');
+            el.userNickname.innerHTML = `<span class="logged-in">${Auth.nickname}</span>`;
+            el.logoutButton?.classList.remove('hidden');
             
-            // Привязываем обработчик (только один раз)
-            if (!logoutBtn.hasAttribute('data-bound')) {
-                logoutBtn.setAttribute('data-bound', 'true');
-                logoutBtn.addEventListener('click', () => {
+            if (!el.logoutButton.hasAttribute('data-bound')) {
+                el.logoutButton.setAttribute('data-bound', 'true');
+                el.logoutButton.addEventListener('click', () => {
                     Auth.logout();
                     this.updateUserStatus();
                 });
             }
         } else {
-            nicknameEl.innerHTML = '';
-            logoutBtn?.classList.add('hidden');
+            el.userNickname.innerHTML = '';
+            el.logoutButton?.classList.add('hidden');
         }
     },
-
-    
-    // ====== ЛИДЕРБОРД ======
     
     async showLeaderboard() {
-        document.getElementById('startScreen').classList.add('hidden');
-        document.getElementById('leaderboardScreen').classList.remove('hidden');
-        
-        const listEl = document.getElementById('leaderboardList');
-        listEl.innerHTML = '<div class="loading">loading…</div>';
+        const el = this.elements;
+        el.startScreen.classList.add('hidden');
+        el.leaderboardScreen.classList.remove('hidden');
+        el.leaderboardList.innerHTML = '<div class="loading">loading…</div>';
         
         try {
             const scores = await Auth.getLeaderboard();
             
             if (scores.length === 0) {
-                listEl.innerHTML = '<div class="empty">No results yet. Be the first!</div>';
+                el.leaderboardList.innerHTML = '<div class="empty">No results yet. Be the first!</div>';
                 return;
             }
             
-            listEl.innerHTML = scores.map((entry, index) => {
+            el.leaderboardList.innerHTML = scores.map((entry, index) => {
                 const rank = index + 1;
-                let rankClass = '';
-                let medal = '';
+                let rankClass = '', medal = '';
                 
                 if (rank === 1) { rankClass = 'gold'; medal = '🥇'; }
                 else if (rank === 2) { rankClass = 'silver'; medal = '🥈'; }
@@ -228,213 +226,167 @@ const AuthUI = {
                 `;
             }).join('');
         } catch (error) {
-            listEl.innerHTML = '<div class="error">loading error</div>';
+            el.leaderboardList.innerHTML = '<div class="error">loading error</div>';
         }
     },
     
     hideLeaderboard() {
-        document.getElementById('leaderboardScreen').classList.add('hidden');
-        document.getElementById('startScreen').classList.remove('hidden');
+        this.elements.leaderboardScreen.classList.add('hidden');
+        this.elements.startScreen.classList.remove('hidden');
     },
     
-    // ====== СОХРАНЕНИЕ РЕЗУЛЬТАТА ======
     showSaveScore() {
-        document.getElementById('gameOver').style.display = 'none';
-        document.getElementById('saveScoreScreen').classList.remove('hidden');
+        const el = this.elements;
+        el.gameOver.style.display = 'none';
+        el.saveScoreScreen.classList.remove('hidden');
+        el.saveScoreInfo.textContent = `Your score: ${this.currentScore.toLocaleString()} points`;
         
-        document.getElementById('saveScoreInfo').textContent = `Your score: ${this.currentScore.toLocaleString()} points`;
-        
-        // ✅ Если залогинен — проверяем, рекорд ли это
         if (Auth.isLoggedIn()) {
-            if (this.currentIsNewRecord) {
-                // Новый рекорд — сохраняем
-                this.saveScoreDirectly();
-            } else {
-                // Не рекорд — показываем сообщение
-                this.showNotRecordMessage();
-            }
+            this.currentIsNewRecord ? this.saveScoreDirectly() : this.showNotRecordMessage();
             return;
         }
         
-        // ✅ Если НЕ залогинен, но это не рекорд (гость) — всё равно показываем форму
-        // Для гостей isNewRecord всегда true (у них нет сохранённых результатов)
-        
         // Показываем форму авторизации
-        document.getElementById('authForm').classList.remove('hidden');
-        document.getElementById('saveResult').classList.add('hidden');
-        document.getElementById('nicknameInput').value = '';
-        document.getElementById('passwordInput').value = '';
-        document.getElementById('passwordInput').classList.add('hidden');
-        document.getElementById('passwordHint').classList.add('hidden');
-        document.getElementById('authSubmitButton').classList.add('hidden');
-        document.getElementById('nicknameStatus').textContent = '';
-        document.getElementById('skipSaveButton').classList.remove('hidden');
-        //document.getElementById('saveMenuButton').classList.add('hidden');
+        el.authForm.classList.remove('hidden');
+        el.saveResult.classList.add('hidden');
+        el.nicknameInput.value = '';
+        el.passwordInput.value = '';
+        el.passwordInput.classList.add('hidden');
+        el.passwordHint.classList.add('hidden');
+        el.authSubmitButton.classList.add('hidden');
+        el.nicknameStatus.textContent = '';
+        el.skipSaveButton.classList.remove('hidden');
     },
     
-    // ✅ Новая функция: показать сообщение "не рекорд"
     showNotRecordMessage() {
-        document.getElementById('authForm').classList.add('hidden');
-        document.getElementById('saveResult').classList.remove('hidden');
-        document.getElementById('saveResult').innerHTML = `
+        const el = this.elements;
+        el.authForm.classList.add('hidden');
+        el.saveResult.classList.remove('hidden');
+        el.saveResult.innerHTML = `
             <div class="info">
                 This is not your best score<br>
                 <span style="color: #888; font-size: 14px;">Your record is higher — score not saved</span>
             </div>
         `;
-        document.getElementById('skipSaveButton').classList.add('hidden');
-        
-        // Показываем кнопки "Ещё раз" и "В меню"
+        el.skipSaveButton.classList.add('hidden');
         this.showAfterSaveButtons();
     },
     
     async saveScoreDirectly() {
-        document.getElementById('authForm').classList.add('hidden');
-        document.getElementById('saveResult').classList.remove('hidden');
-        document.getElementById('saveResult').innerHTML = '<div class="loading">saving...</div>';
-        document.getElementById('skipSaveButton').classList.add('hidden');
+        const el = this.elements;
+        el.authForm.classList.add('hidden');
+        el.saveResult.classList.remove('hidden');
+        el.saveResult.innerHTML = '<div class="loading">saving...</div>';
+        el.skipSaveButton.classList.add('hidden');
         
         try {
             const result = await Auth.saveScore(this.currentSessionId);
             
-            if (result.isNewRecord) {
-                document.getElementById('saveResult').innerHTML = `
-                    <div class="success">
-                        🏆 Your record saved!<br>
-                        your rank: #${result.rank}
-                    </div>
-                `;
-            } else {
-                document.getElementById('saveResult').innerHTML = `
-                    <div class="info">
-                        Score not saved!<br>
-                        <span style="color: #888; font-size: 14px;">Your record is higher</span>
-                    </div>
-                `;
-            }
+            el.saveResult.innerHTML = result.isNewRecord
+                ? `<div class="success">🏆 Your record saved!<br>your rank: #${result.rank}</div>`
+                : `<div class="info">Score not saved!<br><span style="color: #888; font-size: 14px;">Your record is higher</span></div>`;
             
-            // ✅ Показываем кнопки после сохранения
             this.showAfterSaveButtons();
-            
         } catch (error) {
-            document.getElementById('saveResult').innerHTML = `<div class="error">❌ ${error.message}</div>`;
-            document.getElementById('skipSaveButton').classList.remove('hidden');
+            el.saveResult.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            el.skipSaveButton.classList.remove('hidden');
         }
     },
 
-    // ✅ Новая функция
     showAfterSaveButtons() {
-        document.getElementById('afterSaveButtons')?.classList.remove('hidden');
-        document.getElementById('skipSaveButton')?.classList.add('hidden');
+        this.elements.afterSaveButtons?.classList.remove('hidden');
+        this.elements.skipSaveButton?.classList.add('hidden');
     },
-
     
     hideSaveScore() {
-        document.getElementById('saveScoreScreen').classList.add('hidden');
-        document.getElementById('gameOver').style.display = 'flex';
+        this.elements.saveScoreScreen.classList.add('hidden');
+        this.elements.gameOver.style.display = 'flex';
     },
     
     goToMenu() {
-        document.getElementById('saveScoreScreen').classList.add('hidden');
+        this.elements.saveScoreScreen.classList.add('hidden');
         
-        // Вызываем глобальную функцию очистки из game.js
         if (typeof window.backToMenu === 'function') {
             window.backToMenu();
         } else {
-            document.getElementById('startScreen').classList.remove('hidden');
+            this.elements.startScreen.classList.remove('hidden');
         }
         
         this.updateUserStatus();
     },
     
-    // ====== ФОРМА АВТОРИЗАЦИИ ======
-    
     async onNicknameInput(e) {
+        const el = this.elements;
         const nickname = e.target.value.trim();
-        const statusEl = document.getElementById('nicknameStatus');
-        const passwordInput = document.getElementById('passwordInput');
-        const passwordHint = document.getElementById('passwordHint');
-        const submitButton = document.getElementById('authSubmitButton');
         
         if (nickname.length < 2) {
-            statusEl.textContent = '';
-            passwordInput.classList.add('hidden');
-            passwordHint.classList.add('hidden');
-            submitButton.classList.add('hidden');
+            el.nicknameStatus.textContent = '';
+            el.passwordInput.classList.add('hidden');
+            el.passwordHint.classList.add('hidden');
+            el.authSubmitButton.classList.add('hidden');
             return;
         }
         
-        statusEl.textContent = 'Проверка...';
-        statusEl.className = '';
+        el.nicknameStatus.textContent = 'Проверка...';
+        el.nicknameStatus.className = '';
         
         try {
             const available = await Auth.checkNickname(nickname);
+            this.isNewUser = available;
             
             if (available) {
-                this.isNewUser = true;
-                statusEl.textContent = 'nickname available! Create a password';
-                statusEl.className = 'status-success';
-                passwordHint.textContent = 'min. 4 chars';
-                passwordInput.placeholder = 'Create a password';
+                el.nicknameStatus.textContent = 'nickname available! Create a password';
+                el.nicknameStatus.className = 'status-success';
+                el.passwordHint.textContent = 'min. 4 chars';
+                el.passwordInput.placeholder = 'Create a password';
             } else {
-                this.isNewUser = false;
-                statusEl.textContent = 'nickname taken. Yours? Enter password';
-                statusEl.className = 'status-info';
-                passwordHint.textContent = '';
-                passwordInput.placeholder = 'Your password';
+                el.nicknameStatus.textContent = 'nickname taken. Yours? Enter password';
+                el.nicknameStatus.className = 'status-info';
+                el.passwordHint.textContent = '';
+                el.passwordInput.placeholder = 'Your password';
             }
             
-            passwordInput.classList.remove('hidden');
-            passwordHint.classList.remove('hidden');
-            submitButton.classList.remove('hidden');
-            submitButton.textContent = available ? 'sing up' : 'login';
-            
+            el.passwordInput.classList.remove('hidden');
+            el.passwordHint.classList.remove('hidden');
+            el.authSubmitButton.classList.remove('hidden');
+            el.authSubmitButton.textContent = available ? 'sing up' : 'login';
         } catch (error) {
-            statusEl.textContent = '❌ verification error';
-            statusEl.className = 'status-error';
+            el.nicknameStatus.textContent = '❌ verification error';
+            el.nicknameStatus.className = 'status-error';
         }
     },
     
     async onSubmit() {
-        const nickname = document.getElementById('nicknameInput').value.trim();
-        const password = document.getElementById('passwordInput').value;
-        const submitButton = document.getElementById('authSubmitButton');
-        const statusEl = document.getElementById('nicknameStatus');
+        const el = this.elements;
+        const nickname = el.nicknameInput.value.trim();
+        const password = el.passwordInput.value;
         
         if (!nickname || !password) {
-            statusEl.textContent = '❌ fill in all fields';
-            statusEl.className = 'status-error';
+            el.nicknameStatus.textContent = '❌ fill in all fields';
+            el.nicknameStatus.className = 'status-error';
             return;
         }
         
         if (this.isNewUser && password.length < 4) {
-            statusEl.textContent = '❌ Password min. 4 chars';
-            statusEl.className = 'status-error';
+            el.nicknameStatus.textContent = '❌ Password min. 4 chars';
+            el.nicknameStatus.className = 'status-error';
             return;
         }
         
-        submitButton.disabled = true;
-        submitButton.textContent = 'wait...';
+        el.authSubmitButton.disabled = true;
+        el.authSubmitButton.textContent = 'wait...';
         
         try {
-            if (this.isNewUser) {
-                await Auth.register(nickname, password);
-            } else {
-                await Auth.login(nickname, password);
-            }
-            
-            // Успешно — сохраняем результат
+            await (this.isNewUser ? Auth.register(nickname, password) : Auth.login(nickname, password));
             await this.saveScoreDirectly();
-            
         } catch (error) {
-            statusEl.textContent = `❌ ${error.message}`;
-            statusEl.className = 'status-error';
-            submitButton.disabled = false;
-            submitButton.textContent = this.isNewUser ? 'sing up' : 'login';
+            el.nicknameStatus.textContent = `❌ ${error.message}`;
+            el.nicknameStatus.className = 'status-error';
+            el.authSubmitButton.disabled = false;
+            el.authSubmitButton.textContent = this.isNewUser ? 'sing up' : 'login';
         }
     },
     
-    // ✅ Обновлено: принимает isNewRecord
     setGameResult(sessionId, score, isNewRecord = true) {
         this.currentSessionId = sessionId;
         this.currentScore = score;
@@ -442,7 +394,13 @@ const AuthUI = {
     }
 };
 
+// Экспорт для использования в window
+window.Auth = Auth;
+window.AuthUI = AuthUI;
+
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', () => {
     AuthUI.init();
 });
+
+export { Auth, AuthUI };
