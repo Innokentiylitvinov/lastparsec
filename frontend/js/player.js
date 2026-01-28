@@ -7,28 +7,23 @@ export class Player {
         this.height = 40;
         this.color = '#FF0000';
         this.image = null;
-        
-        // ✅ Кэшированный bounds — создаётся один раз
-        this._bounds = {
-            x: this.x,
-            y: this.y,
-            width: this.width,
-            height: this.height
-        };
     }
     
     update(controls, deltaTime) {
+        // Мобильное управление (гироскоп)
         const gyroSpeed = controls.getPlayerSpeed(this.canvas.width, deltaTime);
         
         if (gyroSpeed !== null) {
             this.x += gyroSpeed;
         } else {
+            // Десктоп — следуем за мышью
             const mouseX = controls.getMouseX();
             if (mouseX !== null) {
                 this.x = mouseX;
             }
         }
         
+        // Ограничение в пределах экрана
         this.x = Math.max(this.width / 2, Math.min(this.canvas.width - this.width / 2, this.x));
     }
     
@@ -57,10 +52,12 @@ export class Player {
         this.y = this.canvas.height - 100;
     }
     
-    // ✅ Обновляем кэш вместо создания нового объекта
     getBounds() {
-        this._bounds.x = this.x;
-        this._bounds.y = this.y;
-        return this._bounds;
+        return {
+            x: this.x,
+            y: this.y,
+            width: this.width,
+            height: this.height
+        };
     }
 }

@@ -1,4 +1,3 @@
-let cleanupCounter = 0;
 import { ControlSystem } from './input.js';
 import { Player } from './player.js';
 import { EnemyManager } from './enemies.js';
@@ -153,11 +152,8 @@ function gameLoop(currentTime) {
     
     // Всегда рисуем фон и звёзды
     renderer.clear();
-    if (!window.gameRunning) {
-        // Звёзды только в меню!
-        renderer.updateStars(dt);
-        renderer.drawStars();
-    }
+    renderer.updateStars(dt);
+    renderer.drawStars();
     
     // Игровая логика только когда игра запущена
     if (window.gameRunning) {
@@ -174,20 +170,6 @@ function gameLoop(currentTime) {
         
         enemyManager.checkPlayerBullets(bullets, changeScore);
         
-        // ✅ Очистка пуль игрока
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            if (bullets[i].dead) {
-                bullets.splice(i, 1);
-            }
-        }
-
-        // ✅ Очистка мёртвых объектов каждые 60 кадров
-        cleanupCounter++;
-        if (cleanupCounter >= 60) {
-            enemyManager.cleanup();
-            cleanupCounter = 0;
-        }
-
         renderer.drawBullets(bullets);
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
