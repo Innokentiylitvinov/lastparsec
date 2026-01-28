@@ -31,35 +31,32 @@ export class UI {
         this.scoreElement.classList.add('visible');
     }
     
-    // 🆕 Обновлённый метод с третьим параметром
-    showGameOver(reason, score, statusMessage = null) {
-        this.gameOverReason.textContent = reason;
-        this.finalScore.textContent = `score: ${score}`;
+    showGameOver(reason, score, extra = null, isLoggedIn = false) {
+        document.getElementById('gameOverReason').textContent = reason;
+        document.getElementById('finalScore').textContent = `Score: ${score}`;
         
-        // Показываем статус валидации
-        if (statusMessage) {
-            this.validationStatus.textContent = statusMessage;
-            // Добавляем после finalScore если ещё не добавлен
-            if (!this.validationStatus.parentNode) {
-                this.finalScore.parentNode.insertBefore(
-                    this.validationStatus, 
-                    this.finalScore.nextSibling
-                );
-            }
-            this.validationStatus.style.display = 'block';
+        // Доп. инфо (рекорд, время и т.д.)
+        const extraEl = document.getElementById('gameOverExtra');
+        if (extra) {
+            extraEl.textContent = extra;
+            extraEl.classList.remove('hidden');
         } else {
-            this.validationStatus.style.display = 'none';
+            extraEl.classList.add('hidden');
         }
         
-        this.gameOverElement.style.display = 'block';
-        
-        // Освобождаем курсор
-        if (document.pointerLockElement) {
-            document.exitPointerLock();
+        // Кнопка "save score" — только для гостей!
+        const saveBtn = document.getElementById('saveScoreButton');
+        if (saveBtn) {
+            if (isLoggedIn) {
+                saveBtn.classList.add('hidden');
+            } else {
+                saveBtn.classList.remove('hidden');
+            }
         }
         
-        document.getElementById('gameCanvas').style.cursor = 'default';
+        document.getElementById('gameOver').style.display = 'flex';
     }
+
     
     hideGameOver() {
         this.gameOverElement.style.display = 'none';

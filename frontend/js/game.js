@@ -52,23 +52,36 @@ async function gameOver(reason) {
     window.gameRunning = false;
     
     const result = await api.endGame(score);
+    const isLoggedIn = typeof Auth !== 'undefined' && Auth.isLoggedIn();
     
     if (result.valid) {
         if (typeof AuthUI !== 'undefined') {
             AuthUI.setGameResult(api.lastSessionId, score, result.isNewRecord);
         }
         
-        let extra = `time: ${result.gameTime}с`;
-        if (result.isNewRecord) {
-            extra = `🏆 record Set! (${result.gameTime}с)`;
+        if (isLoggedIn) {
+            // Автосохранение для залогиненных
+            try {
+                const saveResult = await Auth.saveScore(api.lastSessionId);
+                
+                if (saveResult.isNewRecord) {
+                    ui.showGameOver(reason, score, `🏆 New record! #${saveResult.rank}`, true);
+                } else {
+                    ui.showGameOver(reason, score, `Your best: ${Auth.bestScore}`, true);
+                }
+            } catch (e) {
+                ui.showGameOver(reason, score, null, true);
+            }
+        } else {
+            // Гость — просто показываем результат
+            ui.showGameOver(reason, score, null, false);
         }
-        
-        ui.showGameOver(reason, score, extra);
     } else {
-        ui.showGameOver(reason, score, `⚠️ score rejected`);
-        console.warn('Score rejected:', result.reason);
+        ui.showGameOver(reason, score, `⚠️ score rejected`, isLoggedIn);
     }
 }
+
+
 
 async function startGame() {
     ui.hideStartScreen();
