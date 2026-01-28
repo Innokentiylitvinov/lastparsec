@@ -39,41 +39,103 @@ body {
     transition: opacity 0.5s;
 }
 
+/* ====== GAME OVER ЭКРАН ====== */
 #gameOver {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     color: #fff;
-    font-size: 48px;
-    font-weight: bold;
     text-align: center;
     display: none;
+    flex-direction: column;
+    align-items: center;
     z-index: 20;
-    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
+    padding: 40px;
 }
 
-#gameOver p {
-    margin: 20px 0;
-    font-size: 24px;
-}
-
-#restartButton {
-    padding: 15px 40px;
-    font-size: 24px;
+.game-over-title {
+    font-size: 48px;
     font-weight: bold;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
+    margin-bottom: 10px;
+}
+
+#gameOverReason {
+    font-size: 18px;
+    color: #888;
+    margin: 10px 0;
+}
+
+#finalScore {
+    font-size: 36px;
+    font-weight: bold;
+    color: #667eea;
+    margin: 10px 0;
+}
+
+#gameOverExtra {
+    font-size: 16px;
+    color: #4ade80;
+    margin: 5px 0 20px 0;
+}
+
+.game-over-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.game-over-buttons button {
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: bold;
     color: white;
     border: none;
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 #restartButton {
-    margin-top: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
+
+#restartButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+#menuButton {
+    background: linear-gradient(135deg, #4a4a6a 0%, #2a2a4a 100%);
+    box-shadow: 0 4px 15px rgba(74, 74, 106, 0.4);
+}
+
+#menuButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74, 74, 106, 0.6);
+}
+
+#saveScoreButton {
+    margin-top: 15px;
+    padding: 12px 25px;
+    font-size: 16px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4);
+}
+
+#saveScoreButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74, 222, 128, 0.6);
+}
+
 
 /* ====== КНОПКА ГИРОСКОПА (отдельно) ====== */
 #permissionButton {
@@ -95,7 +157,6 @@ body {
     transition: all 0.3s ease;
 }
 
-#restartButton:hover,
 #permissionButton:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
@@ -607,4 +668,123 @@ body {
     background: rgba(255, 255, 255, 0.15);
     color: #fff;
     border-color: #666;
+}
+
+/* ====== ЭКРАН ПРОФИЛЯ ====== */
+#profileScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    z-index: 100;
+    overflow-y: auto;
+}
+
+#profileContent {
+    width: 90%;
+    max-width: 400px;
+    flex: 1;
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    font-weight: bold;
+    color: white;
+    margin: 0 auto 15px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.profile-nickname {
+    font-size: 28px;
+    color: #fff;
+    margin: 0;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 20px 15px;
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+}
+
+/* Кликабельный никнейм в лидерборде */
+.nickname.clickable {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.nickname.clickable:hover {
+    color: #667eea;
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 600px) {
+    .game-over-title {
+        font-size: 36px;
+    }
+    
+    #finalScore {
+        font-size: 28px;
+    }
+    
+    .game-over-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .game-over-buttons button {
+        width: 200px;
+    }
+    
+    .profile-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+    }
+    
+    .profile-nickname {
+        font-size: 24px;
+    }
+    
+    .stat-value {
+        font-size: 20px;
+    }
 }

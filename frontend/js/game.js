@@ -51,6 +51,10 @@ function changeScore(delta) {
 async function gameOver(reason) {
     window.gameRunning = false;
     
+    if (document.pointerLockElement) {
+        document.exitPointerLock();
+    }
+
     const result = await api.endGame(score);
     const isLoggedIn = typeof Auth !== 'undefined' && Auth.isLoggedIn();
     
