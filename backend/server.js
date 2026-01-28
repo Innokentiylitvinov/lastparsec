@@ -66,7 +66,10 @@ const gameSessions = new Map();
 const VALIDATION = {
     MAX_SCORE_PER_SECOND: 20,
     MIN_GAME_TIME: 3,
-    SESSION_TIMEOUT: 60 * 60 * 1000
+    SESSION_TIMEOUT: 60 * 60 * 1000,
+    NICKNAME_MIN: 2,
+    NICKNAME_MAX: 17,
+    PASSWORD_MIN: 4
 };
 
 setInterval(() => {
@@ -92,7 +95,6 @@ async function getUserFromToken(req) {
     const token = authHeader.slice(7);
     
     try {
-        // Ищем токен в БД
         const sessionResult = await pool.query(
             'SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()',
             [token]
@@ -109,6 +111,21 @@ async function getUserFromToken(req) {
     }
 }
 
+// ====== ВАЛИДАЦИЯ ======
+function validateNickname(nickname) {
+    if (!nickname) return 'Nickname required';
+    if (nickname.length < VALIDATION.NICKNAME_MIN) return `Nickname must be at least ${VALIDATION.NICKNAME_MIN} characters`;
+    if (nickname.length > VALIDATION.NICKNAME_MAX) return `Nickname must be at most ${VALIDATION.NICKNAME_MAX} characters`;
+    if (!/^[a-zA-Z0-9_]+$/.test(nickname)) return 'Nickname can only contain letters, numbers, and underscores';
+    return null;
+}
+
+function validatePassword(password) {
+    if (!password) return 'Password required';
+    if (password.length < VALIDATION.PASSWORD_MIN) return `Password must be at least ${VALIDATION.PASSWORD_MIN} characters`;
+    return null;
+}
+
 // ====== API: HEALTH ======
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date() });
@@ -117,11 +134,12 @@ app.get('/api/health', (req, res) => {
 // ====== API: AUTH ======
 
 // Проверить, занят ли ник
-app.post('/api/auth/check-nickname', async (req, res) => {
-    const { nickname } = req.body;
+app.get('/api/auth/check/:nickname', async (req, res) => {
+    const { nickname } = req.params;
     
-    if (!nickname || nickname.length < 2 || nickname.length > 20) {
-        return res.status(400).json({ error: 'Nickname must be 2-20 characters' });
+    const error = validateNickname(nickname);
+    if (error) {
+        return res.json({ exists: false, valid: false, error });
     }
     
     try {
@@ -129,7 +147,10 @@ app.post('/api/auth/check-nickname', async (req, res) => {
             'SELECT id FROM users WHERE LOWER(nickname) = LOWER($1)',
             [nickname]
         );
-        res.json({ available: result.rows.length === 0 });
+        res.json({ 
+            exists: result.rows.length > 0,
+            valid: true
+        });
     } catch (error) {
         console.error('Check nickname error:', error);
         res.status(500).json({ error: 'Database error' });
@@ -140,11 +161,14 @@ app.post('/api/auth/check-nickname', async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
     const { nickname, password } = req.body;
     
-    if (!nickname || nickname.length < 2 || nickname.length > 20) {
-        return res.status(400).json({ error: 'Nickname must be 2-20 characters' });
+    const nicknameError = validateNickname(nickname);
+    if (nicknameError) {
+        return res.status(400).json({ error: nicknameError });
     }
-    if (!password || password.length < 4) {
-        return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+        return res.status(400).json({ error: passwordError });
     }
     
     try {
@@ -157,14 +181,17 @@ app.post('/api/auth/register', async (req, res) => {
         const user = result.rows[0];
         const token = generateToken();
         
-        // ✅ Сохраняем токен в БД (не в память!)
         await pool.query(
             'INSERT INTO sessions (user_id, token) VALUES ($1, $2)',
             [user.id, token]
         );
         
         console.log(`👤 New user: ${nickname}`);
-        res.json({ token, nickname: user.nickname });
+        res.json({ 
+            token, 
+            nickname: user.nickname,
+            bestScore: 0
+        });
     } catch (error) {
         if (error.code === '23505') {
             return res.status(400).json({ error: 'Nickname already taken' });
@@ -178,8 +205,14 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
     const { nickname, password } = req.body;
     
-    if (!nickname || !password) {
-        return res.status(400).json({ error: 'Nickname and password required' });
+    const nicknameError = validateNickname(nickname);
+    if (nicknameError) {
+        return res.status(400).json({ error: nicknameError });
+    }
+    
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+        return res.status(400).json({ error: passwordError });
     }
     
     try {
@@ -196,14 +229,24 @@ app.post('/api/auth/login', async (req, res) => {
         const user = result.rows[0];
         const token = generateToken();
         
-        // Сохраняем токен в БД
         await pool.query(
             'INSERT INTO sessions (user_id, token) VALUES ($1, $2)',
             [user.id, token]
         );
         
-        console.log(`🔑 User logged in: ${user.nickname}`);
-        res.json({ token, nickname: user.nickname });
+        // Получаем лучший результат
+        const bestResult = await pool.query(
+            'SELECT MAX(score) as best FROM scores WHERE user_id = $1',
+            [user.id]
+        );
+        const bestScore = bestResult.rows[0]?.best || 0;
+        
+        console.log(`🔑 User logged in: ${user.nickname} (best: ${bestScore})`);
+        res.json({ 
+            token, 
+            nickname: user.nickname,
+            bestScore
+        });
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Database error' });
@@ -218,7 +261,6 @@ app.get('/api/auth/me', async (req, res) => {
     }
     
     try {
-        // Получаем лучший результат
         const bestScore = await pool.query(
             'SELECT MAX(score) as best FROM scores WHERE user_id = $1',
             [user.id]
@@ -232,6 +274,20 @@ app.get('/api/auth/me', async (req, res) => {
         console.error('Get me error:', error);
         res.status(500).json({ error: 'Database error' });
     }
+});
+
+// Выход
+app.post('/api/auth/logout', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        try {
+            await pool.query('DELETE FROM sessions WHERE token = $1', [token]);
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    }
+    res.json({ success: true });
 });
 
 // ====== API: GAME ======
@@ -248,7 +304,6 @@ app.post('/api/game/start', (req, res) => {
     res.json({ sessionId });
 });
 
-// ✅ Добавлен isNewRecord
 app.post('/api/game/end', async (req, res) => {
     const { sessionId, score } = req.body;
     
@@ -279,7 +334,7 @@ app.post('/api/game/end', async (req, res) => {
     session.finalScore = score;
     session.gameTime = gameTime;
     
-    // ✅ Проверяем, новый ли это рекорд
+    // Проверяем, новый ли это рекорд
     let isNewRecord = true;
     const user = await getUserFromToken(req);
     
@@ -303,13 +358,12 @@ app.post('/api/game/end', async (req, res) => {
         score, 
         gameTime: gameTime.toFixed(1),
         sessionId,
-        isNewRecord  // ✅ Клиент узнает, показывать ли кнопку сохранения
+        isNewRecord
     });
 });
 
 // ====== API: SCORES ======
 
-// ✅ Сохраняет только если новый рекорд
 app.post('/api/scores', async (req, res) => {
     const { sessionId } = req.body;
     const user = await getUserFromToken(req);
@@ -347,15 +401,19 @@ app.post('/api/scores', async (req, res) => {
             );
             isNewRecord = true;
         }
-        // Если результат хуже — ничего не делаем
         
         gameSessions.delete(sessionId);
         
         // Получаем место в рейтинге
-        const rank = await pool.query(
-            'SELECT COUNT(*) + 1 as rank FROM scores WHERE score > $1',
-            [session.finalScore]
-        );
+        const rank = await pool.query(`
+            SELECT COUNT(*) + 1 as rank 
+            FROM (
+                SELECT user_id, MAX(score) as best_score
+                FROM scores
+                GROUP BY user_id
+                HAVING MAX(score) > $1
+            ) as better_players
+        `, [session.finalScore]);
         
         if (isNewRecord) {
             console.log(`💾 New record: ${user.nickname} - ${session.finalScore}`);
@@ -377,7 +435,6 @@ app.post('/api/scores', async (req, res) => {
 
 // ====== API: LEADERBOARD ======
 
-// ✅ Только лучший результат каждого игрока
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 100;
@@ -394,6 +451,60 @@ app.get('/api/leaderboard', async (req, res) => {
         res.json(result.rows);
     } catch (error) {
         console.error('Leaderboard error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// ====== API: PROFILE ======
+
+app.get('/api/profile/:nickname', async (req, res) => {
+    try {
+        const { nickname } = req.params;
+        
+        const userResult = await pool.query(
+            'SELECT id, nickname, created_at FROM users WHERE LOWER(nickname) = LOWER($1)',
+            [nickname]
+        );
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // Лучший результат
+        const bestResult = await pool.query(
+            'SELECT MAX(score) as best FROM scores WHERE user_id = $1',
+            [user.id]
+        );
+        const bestScore = bestResult.rows[0]?.best || 0;
+        
+        // Ранг
+        const rankResult = await pool.query(`
+            SELECT COUNT(*) + 1 as rank 
+            FROM (
+                SELECT user_id, MAX(score) as best_score
+                FROM scores
+                GROUP BY user_id
+                HAVING MAX(score) > $1
+            ) as better_players
+        `, [bestScore]);
+        
+        // Количество игр
+        const gamesResult = await pool.query(
+            'SELECT COUNT(*) as games FROM scores WHERE user_id = $1',
+            [user.id]
+        );
+        
+        res.json({
+            nickname: user.nickname,
+            bestScore,
+            rank: parseInt(rankResult.rows[0].rank),
+            gamesPlayed: parseInt(gamesResult.rows[0].games),
+            createdAt: user.created_at
+        });
+    } catch (error) {
+        console.error('Profile error:', error);
         res.status(500).json({ error: 'Database error' });
     }
 });

@@ -7,14 +7,12 @@ const Auth = {
         return !!this.token;
     },
     
+    // ✅ Исправлено — GET вместо POST
     async checkNickname(nickname) {
-        const res = await fetch('/api/auth/check-nickname', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nickname })
-        });
+        const res = await fetch(`/api/auth/check/${encodeURIComponent(nickname)}`);
         const data = await res.json();
-        return data.available;
+        // available = не существует И валидный никнейм
+        return !data.exists && data.valid;
     },
     
     async register(nickname, password) {
@@ -64,7 +62,6 @@ const Auth = {
         }
         
         const data = await res.json();
-        // Обновляем локальный bestScore
         if (data.bestScore !== undefined) {
             this.bestScore = data.bestScore;
             localStorage.setItem('authBestScore', data.bestScore);
@@ -111,7 +108,6 @@ const Auth = {
         
         const data = await res.json();
         
-        // Обновляем локальный рекорд
         if (data.isNewRecord && data.score) {
             this.bestScore = data.score;
             localStorage.setItem('authBestScore', data.score);

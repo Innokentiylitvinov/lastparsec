@@ -51,10 +51,11 @@ function changeScore(delta) {
 async function gameOver(reason) {
     window.gameRunning = false;
     
+    // Возвращаем курсор
     if (document.pointerLockElement) {
         document.exitPointerLock();
     }
-
+    
     const result = await api.endGame(score);
     const isLoggedIn = typeof Auth !== 'undefined' && Auth.isLoggedIn();
     
@@ -64,26 +65,27 @@ async function gameOver(reason) {
         }
         
         if (isLoggedIn) {
-            // Автосохранение для залогиненных
             try {
                 const saveResult = await Auth.saveScore(api.lastSessionId);
                 
                 if (saveResult.isNewRecord) {
-                    ui.showGameOver(reason, score, `🏆 New record! #${saveResult.rank}`, true);
+                    // ✅ Новый формат
+                    ui.showGameOver(reason, score, `🏆 New record! Rank #${saveResult.rank}`, true);
                 } else {
                     ui.showGameOver(reason, score, `Your best: ${Auth.bestScore}`, true);
                 }
             } catch (e) {
+                console.error('Save error:', e);
                 ui.showGameOver(reason, score, null, true);
             }
         } else {
-            // Гость — просто показываем результат
             ui.showGameOver(reason, score, null, false);
         }
     } else {
-        ui.showGameOver(reason, score, `⚠️ score rejected`, isLoggedIn);
+        ui.showGameOver(reason, score, `⚠️ Score rejected`, isLoggedIn);
     }
 }
+
 
 
 
