@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.png">
+
+    <!-- iOS — одна иконка 180x180 покрывает всё -->
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+    <!-- iOS настройки -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Last Parsec">
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Last Parsec</title>
@@ -60,15 +71,17 @@
     
     <!-- Game Over экран -->
     <div id="gameOver">
-        <div>GAME OVER</div>
+        <div class="game-over-title">GAME OVER</div>
+        <p id="gameOverReason"></p>
         <p id="finalScore"></p>
-        <p id="gameOverReason">game over!</p>
-        <div class="menu-buttons">
-            <button id="saveScoreButton">save result</button>
+        <p id="gameOverExtra" class="hidden"></p>  <!-- ← ДОБАВЬ ЭТО -->
+        <div class="game-over-buttons">
             <button id="restartButton">restart</button>
-            <button id="menuButton">back to menu</button>
+            <button id="menuButton">menu</button>
         </div>
+        <button id="saveScoreButton">save score</button>
     </div>
+
     
     <canvas id="gameCanvas"></canvas>
 
