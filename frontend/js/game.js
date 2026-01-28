@@ -153,8 +153,11 @@ function gameLoop(currentTime) {
     
     // Всегда рисуем фон и звёзды
     renderer.clear();
-    renderer.updateStars(dt);
-    renderer.drawStars();
+    if (!window.gameRunning) {
+        // Звёзды только в меню!
+        renderer.updateStars(dt);
+        renderer.drawStars();
+    }
     
     // Игровая логика только когда игра запущена
     if (window.gameRunning) {
@@ -184,7 +187,7 @@ function gameLoop(currentTime) {
             enemyManager.cleanup();
             cleanupCounter = 0;
         }
-        
+
         renderer.drawBullets(bullets);
         enemyManager.draw(renderer.getContext());
         player.draw(renderer.getContext());
