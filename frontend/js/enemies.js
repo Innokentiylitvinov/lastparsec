@@ -23,7 +23,7 @@ export class EnemyManager {
     // Интервал стрельбы в секундах (уменьшается с очками)
     getShootInterval(score) {
         // От 2 сек до 0.5 сек минимум
-        return Math.max(0.5, 2 - score * 0.01);
+        return Math.max(0.55, 2 - score * 0.01);
     }
 
     update(score, playerBounds, onScoreChange, onGameOver, deltaTime) {
