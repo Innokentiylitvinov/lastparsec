@@ -250,7 +250,7 @@ body {
     padding: 18px 60px;
     font-size: 24px;
     font-weight: bold;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #667eea;
     color: white;
     border: none;
     border-radius: 10px;
@@ -270,7 +270,7 @@ body {
 }
 
 #leaderboardButton {
-    background: linear-gradient(135deg, #4a4a6a 0%, #2a2a4a 100%);
+    background: #4a4a6a;
     box-shadow: 0 4px 15px rgba(74, 74, 106, 0.4);
 }
 
@@ -329,6 +329,7 @@ body {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     transition: all 0.2s;
+    border: 1px solid rgba(192, 192, 192, 0.3);
 }
 
 .leaderboard-row:hover {
