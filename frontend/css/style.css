@@ -393,6 +393,7 @@ body {
 /* Остальные */
 .leaderboard-row.regular {
     opacity: 0.7;
+    border: 0px;
 }
 
 .leaderboard-row.regular .nickname {
